@@ -8,7 +8,7 @@
 
 Tools for computing influence scores of neurons in connectomes using linear dynamical models of neural signal propagation.
 
-## 🚀 Quick Start (5 minutes)
+## Quick Start
 
 ### 1. Install
 ```r
@@ -16,7 +16,7 @@ remotes::install_github('natverse/influencer')
 library(influencer)
 ```
 
-### 2. Basic Usage - R Implementation (Fastest)
+### 2. Basic Usage - R Implementation (a bit slower than the python one)
 ```r
 # Example with simple network data
 edges <- data.frame(
@@ -68,7 +68,7 @@ install_python_influence_calculator()
 ic_py <- influence_calculator_py(edgelist_simple = edges, meta = meta)
 ```
 
-**👉 Ready for more?** See the [full tutorial](articles/banc-connectome-analysis.html) with real BANC data analysis.
+**more?** See the [full tutorial](articles/banc-connectome-analysis.html) with real BANC data analysis.
 
 ---
 
