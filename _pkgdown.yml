@@ -1,0 +1,85 @@
+url: https://natverse.github.io/influencer
+template:
+  bootstrap: 5
+
+development:
+  mode: auto
+
+home:
+  title: "Connectome Influence Analysis"
+  description: |
+    R tools for analyzing influence propagation in neural connectomes.
+    Provides both native R implementations and Python integration for 
+    calculating how neural signals propagate through network connections.
+  sidebar: false
+
+authors:
+  Alexander Bates:
+    href: https://orcid.org/0000-0002-1195-0445
+
+navbar:
+  structure:
+    left:
+    - home
+    - intro
+    - reference
+    - articles
+    - tutorials
+    - news
+    right: github
+  components:
+    home:
+      icon: fas fa-home fa-lg
+      aria-label: "Home"
+      href: index.html
+    intro:
+      text: Get started
+      href: articles/banc-connectome-analysis.html
+    reference:
+      text: Reference
+      href: reference/index.html
+    articles:
+      text: Articles
+      menu:
+      - text: BANC Connectome Analysis
+        href: articles/banc-connectome-analysis.html
+    news:
+      text: Changelog
+      href: news/index.html
+
+reference:
+- title: Core Influence Calculation
+  desc: Main functions for calculating influence propagation
+  contents:
+  - influence_calculator_r
+  - influence_calculator_py
+  - calculate_influence_py
+  - InfluenceCalculatorR
+
+- title: Python Environment Management
+  desc: Functions for setting up and managing Python dependencies
+  contents:
+  - install_python_influence_calculator
+  - install_python_with_uv
+  - set_python_env
+
+- title: Utilities and Helpers
+  desc: Supporting functions and utilities
+  contents:
+  - check_python_compatibility
+  - create_temp_sqlite
+  - get_current_python_env
+  - influence_calculator
+  - restore_python_env
+  - switch_to_python_env
+
+articles:
+- title: Getting Started
+  navbar: ~
+  contents:
+  - banc-connectome-analysis
+
+footer:
+  structure:
+    left: developed_by
+    right: built_with
