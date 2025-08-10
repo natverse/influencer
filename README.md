@@ -8,70 +8,6 @@
 
 Tools for computing influence scores of neurons in connectomes using linear dynamical models of neural signal propagation.
 
-## Quick Start
-
-### 1. Install
-```r
-remotes::install_github('natverse/influencer')
-library(influencer)
-```
-
-### 2. Basic Usage - R Implementation (a bit slower than the python one)
-```r
-# Example with simple network data
-edges <- data.frame(
-  pre = c("A", "B", "C"),
-  post = c("B", "C", "D"), 
-  count = c(5, 8, 3),
-  norm = c(0.5, 0.8, 0.3),
-  post_count = c(10, 10, 10)
-)
-
-meta <- data.frame(
-  id = c("A", "B", "C", "D"),
-  root_id = c("A", "B", "C", "D")
-)
-
-# Create influence calculator
-ic <- influence_calculator_r(edgelist_simple = edges, meta = meta)
-
-# Calculate influence of neuron "A" on the network
-influence_scores <- ic$calculate_influence("A")
-print(influence_scores)
-```
-
-### 3. Real Data Example - BANC Connectome
-```r
-library(dplyr)
-library(bancr)  # For real connectome data
-
-# Load BANC connectome (may take a few minutes)
-banc_meta <- banc_codex_annotations() %>% 
-  mutate(root_id = as.character(pt_root_id)) %>%
-  select(-pt_position)
-
-banc_edges <- banc_edgelist() %>%
-  select(pre = pre_pt_root_id, post = post_pt_root_id, count = n) %>%
-  # Add edge processing...
-
-# Analyze descending neurons
-ic_banc <- influence_calculator_r(edgelist_simple = banc_edges, meta = banc_meta)
-dna_influence <- ic_banc$calculate_influence(seed_neuron_ids)
-```
-
-### 4. Want Python Backend?
-```r
-# One-time setup
-install_python_influence_calculator()
-
-# Then use Python implementation
-ic_py <- influence_calculator_py(edgelist_simple = edges, meta = meta)
-```
-
-**more?** See the [full tutorial](articles/banc-connectome-analysis.html) with real BANC data analysis.
-
----
-
 ## About
 
 Based on the [ConnectomeInfluenceCalculator](https://doi.org/10.5281/ZENODO.15999930) by [Zaki Ajabi](https://scholar.google.com/citations?user=DQSPi2kAAAAJ&hl=en) and [Jan Drugowitsch](https://scholar.google.com/citations?user=fCUx98wAAAAJ&hl=en), with contributions from [Alexander Shakeel Bates](https://scholar.google.com/citations?user=BOVTiXIAAAAJ&hl=en) and [Rachel I. Wilson](https://scholar.google.com/citations?user=T-RODd8AAAAJ&hl=en). The `influencer` package provides R implementations of their algorithm plus Python wrappers for the original library.
@@ -142,6 +78,71 @@ $$
 The influence of any seed is defined as the magnitude of neural activity at steady state, **r**_∞.
 
 This is a linear system, and so the results should be additive between seed runs. The non-linear effects of convergent information flow are not considered.
+
+
+## Quick Start
+
+### 1. Install
+```r
+remotes::install_github('natverse/influencer')
+library(influencer)
+```
+
+### 2. Basic Usage - R Implementation (a bit slower than the python one)
+```r
+# Example with simple network data
+edges <- data.frame(
+  pre = c("A", "B", "C"),
+  post = c("B", "C", "D"), 
+  count = c(5, 8, 3),
+  norm = c(0.5, 0.8, 0.3),
+  post_count = c(10, 10, 10)
+)
+
+meta <- data.frame(
+  id = c("A", "B", "C", "D"),
+  root_id = c("A", "B", "C", "D")
+)
+
+# Create influence calculator
+ic <- influence_calculator_r(edgelist_simple = edges, meta = meta)
+
+# Calculate influence of neuron "A" on the network
+influence_scores <- ic$calculate_influence("A")
+print(influence_scores)
+```
+
+### 3. Real Data Example - BANC Connectome
+```r
+library(dplyr)
+library(bancr)  # For real connectome data
+
+# Load BANC connectome (may take a few minutes)
+banc_meta <- banc_codex_annotations() %>% 
+  mutate(root_id = as.character(pt_root_id)) %>%
+  select(-pt_position)
+
+banc_edges <- banc_edgelist() %>%
+  select(pre = pre_pt_root_id, post = post_pt_root_id, count = n) %>%
+  # Add edge processing...
+
+# Analyze descending neurons
+ic_banc <- influence_calculator_r(edgelist_simple = banc_edges, meta = banc_meta)
+dna_influence <- ic_banc$calculate_influence(seed_neuron_ids)
+```
+
+### 4. Want Python Backend?
+```r
+# One-time setup
+install_python_influence_calculator()
+
+# Then use Python implementation
+ic_py <- influence_calculator_py(edgelist_simple = edges, meta = meta)
+```
+
+**more?** See the [full tutorial](articles/banc-connectome-analysis.html) with real BANC data analysis.
+
+---
 
 ## Comparison with other methods
 
