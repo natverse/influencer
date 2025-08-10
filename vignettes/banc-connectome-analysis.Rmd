@@ -19,6 +19,8 @@ knitr::opts_chunk$set(
 )
 ```
 
+> **Note**: This vignette uses the BANC connectome data which requires authentication tokens to access. The code chunks are set to `eval=FALSE` to prevent build failures in automated environments. To run this analysis yourself, you'll need to set up access to the BANC data through the `bancr` package.
+
 ## Introduction
 
 This vignette demonstrates how to use the `influencer` package to analyze connectome data, specifically focusing on the **BANC** (Brain And Nerve Cord) connectome. The BANC connectome represents the first complete connectome of both brain and ventral nerve cord in a limbed animal - *Drosophila melanogaster*.
@@ -43,7 +45,7 @@ set.seed(42)
 
 We'll use the `bancr` package to load actual BANC connectome data:
 
-```{r create_data}
+```{r create_data, eval=FALSE}
 library(bancr)
 
 # Load BANC cell type annotations from the centralised codex
@@ -110,7 +112,7 @@ cat("DNa03 seed IDs:", paste(dna03.ids, collapse = ", "), "\n")
 
 Let's identify the direct targets of DNa03 neurons:
 
-```{r direct_targets}
+```{r direct_targets, eval=FALSE}
 # Get direct targets of DNa03 neurons
 dna03.post.ids <- edges.table %>%
                   filter(pre %in% dna03.ids) %>%
@@ -123,7 +125,7 @@ cat("Direct targets of DNa03:", length(dna03.post.ids), "neurons\n")
 
 Now calculate the influence scores:
 
-```{r calculate_influence}
+```{r calculate_influence, eval=FALSE}
 # Calculate how DNa03 neurons influence other neurons (long compute the FIRST time, ~30mins, but then decomposition is cached)
 system.time({
   dna03.influence <- ic.dns$calculate_influence(dna03.ids)
@@ -140,7 +142,7 @@ head(dna03.influence)
 
 Let's classify neurons by whether they're directly or indirectly connected to our seed neurons:
 
-```{r classify_connections}
+```{r classify_connections, eval=FALSE}
 # Classify neurons by their direct connection to seeds
 dna03.influence$directly_connected <- dna03.influence$id %in% dna03.post.ids
 
@@ -150,7 +152,7 @@ table(dna03.influence$directly_connected)
 
 Now we can create visualizations to explore the influence patterns:
 
-```{r plot_influence, fig.width=10, fig.height=6}
+```{r plot_influence, eval=FALSE, fig.width=10, fig.height=6}
 # Create density plot showing influence patterns with scaled densities
 g1 <- ggplot(dna03.influence, aes(x = adjusted_influence, 
                                   fill = directly_connected)) +
@@ -184,7 +186,7 @@ ggsave(g1,
 
 Now that we have run the first influence calculation, the expensive matrix decomposition should be cached. Let's demonstrate this by calculating influence for a different cell type (DNa06) - this should be much faster:
 
-```{r caching_demo, fig.width=10, fig.height=6}
+```{r caching_demo, eval=FALSE, fig.width=10, fig.height=6}
 # Get DNa06 IDs from real BANC data
 dna06.ids <- banc.meta %>%
              filter(cell_type == "DNa06") %>%
@@ -294,7 +296,7 @@ The visualization shows how DNa03 neurons influence other descending neurons in 
 
 The `influencer` package provides both R and Python implementations. Here's how you might compare them:
 
-```{r implementation_comparison, fig.width=10, fig.height=8}
+```{r implementation_comparison, eval=FALSE, fig.width=10, fig.height=8}
 # Python implementation (real comparison, no simulation)
 # Python implementation with automatic environment management
 system.time({

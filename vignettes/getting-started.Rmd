@@ -1,0 +1,182 @@
+---
+title: "Getting Started with influencer"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with influencer}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/getting-started-",
+  fig.width = 8,
+  fig.height = 6,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+## Introduction
+
+The `influencer` package provides tools for calculating influence scores of neurons in connectomes using linear dynamical models. This vignette demonstrates the basic usage with simple synthetic data that doesn't require external authentication.
+
+## Setup
+
+```{r setup}
+library(influencer)
+library(dplyr)
+library(ggplot2)
+
+# Set random seed for reproducibility
+set.seed(42)
+```
+
+## Basic Usage with Synthetic Data
+
+Let's create a simple network to demonstrate the core functionality:
+
+```{r create_synthetic_data}
+# Create a simple 6-neuron network
+edges <- data.frame(
+  pre = c("A", "B", "C", "D", "A", "B"),
+  post = c("B", "C", "D", "E", "C", "D"), 
+  count = c(10, 8, 12, 6, 5, 15),
+  norm = c(0.5, 0.4, 0.6, 0.3, 0.25, 0.75)
+)
+
+meta <- data.frame(
+  root_id = c("A", "B", "C", "D", "E"),
+  cell_type = c("input", "interneuron", "interneuron", "output", "output")
+)
+
+print("Edge list:")
+print(edges)
+print("Metadata:")
+print(meta)
+```
+
+## Creating an Influence Calculator
+
+```{r create_calculator}
+# Create influence calculator using the R implementation
+ic <- influence_calculator_r(edgelist_simple = edges, meta = meta)
+
+# Print some information about the calculator
+cat("Network has", nrow(ic$meta), "neurons and", nrow(ic$edgelist_simple), "connections\n")
+```
+
+## Calculating Influence Scores
+
+```{r calculate_basic_influence}
+# Calculate influence of neuron "A" on the network
+influence_scores_A <- ic$calculate_influence("A")
+print("Influence of neuron A:")
+print(influence_scores_A)
+
+# Calculate influence of neuron "B"  
+influence_scores_B <- ic$calculate_influence("B")
+print("Influence of neuron B:")
+print(influence_scores_B)
+```
+
+## Visualizing Results
+
+```{r plot_results, fig.width=10, fig.height=6}
+# Combine results for comparison
+influence_scores_A$seed <- "A"
+influence_scores_B$seed <- "B"
+combined_results <- rbind(influence_scores_A, influence_scores_B)
+
+# Create comparison plot
+ggplot(combined_results, aes(x = id, y = adjusted_influence, fill = seed)) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Influence Scores Comparison",
+    subtitle = "Comparing influence propagation from neurons A and B",
+    x = "Target Neuron",
+    y = "Adjusted Influence Score",
+    fill = "Seed Neuron"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Multiple Seed Neurons
+
+You can also calculate influence from multiple seed neurons simultaneously:
+
+```{r multiple_seeds}
+# Calculate influence from both A and B together
+combined_influence <- ic$calculate_influence(c("A", "B"))
+print("Combined influence from A and B:")
+print(combined_influence)
+
+# Compare individual vs combined influence
+comparison <- merge(
+  influence_scores_A[, c("id", "adjusted_influence")],
+  combined_influence[, c("id", "adjusted_influence")],
+  by = "id",
+  suffixes = c("_A_only", "_A_and_B")
+)
+print(comparison)
+```
+
+## Understanding the Results
+
+The influence scores represent how much each neuron is affected by the seed neurons through the network dynamics. Key points:
+
+- **Raw influence scores**: Direct output from the linear dynamical model
+- **Adjusted influence**: `max(0, log(influence_score) + 24)` - provides a meaningful scale
+- **Additive effects**: Influence from multiple seeds combines linearly
+
+## Signed vs Unsigned Networks
+
+The package supports both signed and unsigned connectivity:
+
+```{r signed_network}
+# Create calculator with signed connectivity (for inhibitory/excitatory neurons)
+ic_signed <- influence_calculator_r(
+  edgelist_simple = edges, 
+  meta = meta, 
+  signed = TRUE  # This would use inhibitory neurons if marked in metadata
+)
+
+# Results will be similar for this example since we don't have inhibitory neurons marked
+influence_signed <- ic_signed$calculate_influence("A")
+print("Signed network influence (same as unsigned for this example):")
+print(head(influence_signed))
+```
+
+## Performance Notes
+
+The R implementation includes smart caching - the first calculation does matrix decomposition, but subsequent calculations with the same network are much faster:
+
+```{r performance_demo}
+# Time the first calculation
+system.time({
+  result1 <- ic$calculate_influence("A")
+})
+
+# Time a subsequent calculation (should be faster due to caching)
+system.time({
+  result2 <- ic$calculate_influence("C")
+})
+```
+
+## Next Steps
+
+For real-world applications:
+
+1. **Large networks**: The package handles large connectomes efficiently
+2. **Data formats**: Supports both data frames and SQLite databases
+3. **Python integration**: Optional Python backend for specialized use cases
+4. **Real data**: See the BANC connectome analysis vignette for biological examples
+
+## Session Information
+
+```{r session_info}
+sessionInfo()
+```

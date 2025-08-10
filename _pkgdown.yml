@@ -34,14 +34,16 @@ navbar:
       href: index.html
     intro:
       text: Get started
-      href: articles/banc-connectome-analysis.html
+      href: articles/getting-started.html
     reference:
       text: Reference
       href: reference/index.html
     articles:
       text: Articles
       menu:
-      - text: BANC Connectome Analysis
+      - text: Getting Started
+        href: articles/getting-started.html
+      - text: BANC Connectome Analysis  
         href: articles/banc-connectome-analysis.html
     news:
       text: Changelog
@@ -77,7 +79,14 @@ articles:
 - title: Getting Started
   navbar: ~
   contents:
+  - getting-started
   - banc-connectome-analysis
+
+# Selective article building - disable token-requiring vignettes
+build:
+  articles:
+    banc-connectome-analysis:
+      precompile: false
 
 footer:
   structure:
