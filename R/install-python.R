@@ -73,8 +73,13 @@ install_python_influence_calculator <- function(method = "conda",
   # Set default environment name following ConnectomeInfluenceCalculator README
   # but adapted for RStudio r-miniconda environment
   if (is.null(conda_env)) {
-    # Check if we're in RStudio environment with r-miniconda
-    r_miniconda_path <- file.path(Sys.getenv("HOME"), "Library", "r-miniconda")
+    # Check if we're in RStudio environment with r-miniconda (platform-aware)
+    if (Sys.info()[["sysname"]] == "Darwin") {
+      r_miniconda_path <- file.path(Sys.getenv("HOME"), "Library", "r-miniconda")
+    } else {
+      r_miniconda_path <- file.path(Sys.getenv("HOME"), ".local", "share", "r-miniconda")
+    }
+    
     if (dir.exists(r_miniconda_path)) {
       conda_env <- "ic-venv"  # Use recommended name but within r-miniconda
       message("[INFO] RStudio r-miniconda detected - using 'ic-venv' environment")
@@ -94,9 +99,13 @@ install_python_influence_calculator <- function(method = "conda",
   if (python_initialized && !is.null(conda_env)) {
     current_python <- reticulate::py_config()$python
     
-    # Check both standard miniconda and r-miniconda paths
-    r_miniconda_path <- file.path(Sys.getenv("HOME"), "Library", "r-miniconda", "envs", conda_env, "bin", "python")
-    standard_miniconda_path <- file.path("/opt/miniconda3/envs", conda_env, "bin/python")
+    # Check platform-appropriate miniconda paths
+    if (Sys.info()[["sysname"]] == "Darwin") {
+      r_miniconda_path <- file.path(Sys.getenv("HOME"), "Library", "r-miniconda", "envs", conda_env, "bin", "python")
+    } else {
+      r_miniconda_path <- file.path(Sys.getenv("HOME"), ".local", "share", "r-miniconda", "envs", conda_env, "bin", "python")
+    }
+    standard_miniconda_path <- file.path("/opt/miniconda3/envs", conda_env, "bin", "python")
     
     if (!grepl(conda_env, current_python, fixed = TRUE)) {
       current_env <- basename(dirname(dirname(current_python)))
@@ -169,10 +178,8 @@ install_petsc_slepc_with_fallback <- function(conda_env) {
           "Trying conda-forge pre-compiled packages fallback...")
   message("This method avoids MPI compiler conflicts by using pre-compiled binaries.")
   
-  # Force architecture to ensure x86_64 packages (common source of MPI conflicts)
-  cmd_fallback <- paste("CONDA_SUBDIR=osx-64 conda install -c conda-forge petsc4py slepc4py -p", 
-                       file.path(Sys.getenv("HOME"), "Library", "r-miniconda", "envs", conda_env),
-                       "-y")
+  # Use conda environment-based installation (works across platforms)
+  cmd_fallback <- paste("conda install -n", conda_env, "-c conda-forge petsc4py slepc4py -y")
   message("Running fallback: ", cmd_fallback)
   result_fallback <- system(cmd_fallback, ignore.stdout = FALSE, ignore.stderr = FALSE)
   
@@ -302,11 +309,13 @@ install_with_conda <- function(conda_env, python_version, force_reinstall) {
     # Activate environment for pip install - check multiple possible locations
     python_path <- NULL
     
-    # Try r-miniconda path first (common in RStudio)
-    r_miniconda_python <- file.path(Sys.getenv("HOME"), "Library", "r-miniconda", "envs", conda_env, "bin", "python")
-    if (file.exists(r_miniconda_python)) {
-      python_path <- r_miniconda_python
-      message("[INFO] Using r-miniconda Python: ", python_path)
+    # Try r-miniconda path first (common in RStudio on macOS)
+    if (Sys.info()[["sysname"]] == "Darwin") {
+      r_miniconda_python <- file.path(Sys.getenv("HOME"), "Library", "r-miniconda", "envs", conda_env, "bin", "python")
+      if (file.exists(r_miniconda_python)) {
+        python_path <- r_miniconda_python
+        message("[INFO] Using r-miniconda Python: ", python_path)
+      }
     }
     
     # Try standard conda locations
@@ -635,7 +644,13 @@ install_python_with_uv <- function(env_name = "influence-py",
   
   # Check for RStudio and warn about integration
   if (warn_rstudio) {
-    r_miniconda_path <- file.path(Sys.getenv("HOME"), "Library", "r-miniconda")
+    # Check platform-appropriate r-miniconda path
+    if (Sys.info()[["sysname"]] == "Darwin") {
+      r_miniconda_path <- file.path(Sys.getenv("HOME"), "Library", "r-miniconda")
+    } else {
+      r_miniconda_path <- file.path(Sys.getenv("HOME"), ".local", "share", "r-miniconda")
+    }
+    
     if (dir.exists(r_miniconda_path)) {
       message("[INFO] RStudio r-miniconda detected")
       message("[INFO] UV environments may not integrate seamlessly with RStudio")
@@ -702,7 +717,12 @@ install_python_with_uv <- function(env_name = "influence-py",
   message("  reticulate::use_virtualenv('", env_path, "')")
   
   # Check for RStudio and provide specific instructions
-  r_miniconda_path <- file.path(Sys.getenv("HOME"), "Library", "r-miniconda")
+  if (Sys.info()[["sysname"]] == "Darwin") {
+    r_miniconda_path <- file.path(Sys.getenv("HOME"), "Library", "r-miniconda")
+  } else {
+    r_miniconda_path <- file.path(Sys.getenv("HOME"), ".local", "share", "r-miniconda")
+  }
+  
   if (dir.exists(r_miniconda_path)) {
     message("\n[RStudio Users] Additional setup needed:")
     message("1. Add this to your .Rprofile or run in each session:")

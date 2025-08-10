@@ -4,6 +4,16 @@
   if (is.null(x)) y else x
 }
 
+#' Get platform-appropriate r-miniconda path
+#' @noRd
+get_r_miniconda_path <- function() {
+  if (Sys.info()[["sysname"]] == "Darwin") {
+    file.path(Sys.getenv("HOME"), "Library", "r-miniconda")
+  } else {
+    file.path(Sys.getenv("HOME"), ".local", "share", "r-miniconda")
+  }
+}
+
 #' Detect Current Python Environment
 #'
 #' Internal helper function to detect the currently active Python environment.
