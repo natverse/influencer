@@ -71,7 +71,7 @@ cat("DNa06 neurons:", sum(banc.meta$cell_type == "DNa06", na.rm = TRUE), "\n")
 
 Now let's load the actual BANC connectivity data:
 
-```{r create_edges}
+```{r create_edges, eval=FALSE}
 # Load the complete BANC connectivity matrix (this may take several minutes)
 cat("Loading BANC edge list (this may take a few minutes)...\n")
 banc.edges <- banc_edgelist()
