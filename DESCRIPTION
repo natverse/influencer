@@ -29,7 +29,8 @@ Imports:
     RSQLite,
     DBI,
     R6,
-    digest
+    digest,
+    rlang
 Suggests: 
     testthat (>= 3.0.0),
     rmarkdown,

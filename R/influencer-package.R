@@ -11,6 +11,7 @@
 #' @importFrom digest digest
 #' @importFrom magrittr %>%
 #' @importFrom reticulate import py_config py_to_r use_condaenv use_python
+#' @importFrom rlang .data
 #' @importFrom tibble tibble
 ## usethis namespace: end
 NULL

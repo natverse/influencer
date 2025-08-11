@@ -3,7 +3,6 @@
 [![natverse](https://img.shields.io/badge/natverse-Part%20of%20the%20natverse-a241b6)](https://natverse.github.io)
 [![DOI](https://zenodo.org/badge/964174582.svg)](https://doi.org/10.5281/zenodo.15999929)
 [![R-CMD-check](https://github.com/natverse/influencer/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/natverse/influencer/actions/workflows/R-CMD-check.yaml)
-[![Codecov test coverage](https://codecov.io/gh/natverse/influencer/branch/master/graph/badge.svg)](https://app.codecov.io/gh/natverse/influencer?branch=master)
 [![pkgdown](https://github.com/natverse/influencer/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/natverse/influencer/actions/workflows/pkgdown.yaml)
 
 Tools for computing influence scores of neurons in connectomes using linear dynamical models of neural signal propagation.
