@@ -46,6 +46,9 @@ set.seed(42)
 We'll use the `bancr` package to load actual BANC connectome data:
 
 ```{r create_data, eval=FALSE}
+# Install bancr package for BANC connectome data access
+# remotes::install_github('flyconnectome/bancr')
+
 library(bancr)
 
 # Load BANC cell type annotations from the centralised codex

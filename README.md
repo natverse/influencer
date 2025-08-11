@@ -114,6 +114,9 @@ print(influence_scores)
 
 ### 3. Real Data Example - BANC Connectome
 ```r
+# Install bancr package for BANC connectome data access
+remotes::install_github('flyconnectome/bancr')
+
 library(dplyr)
 library(bancr)  # For real connectome data
 

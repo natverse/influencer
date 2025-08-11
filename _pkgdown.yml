@@ -2,9 +2,6 @@ url: https://natverse.github.io/influencer
 template:
   bootstrap: 5
 
-development:
-  mode: auto
-
 home:
   title: "Connectome Influence Analysis"
   description: |
@@ -25,7 +22,6 @@ navbar:
     - reference
     - articles
     - tutorials
-    - news
     right: github
   components:
     home:
@@ -43,9 +39,6 @@ navbar:
       menu:
       - text: Getting Started
         href: articles/getting-started.html
-    news:
-      text: Changelog
-      href: news/index.html
 
 reference:
 - title: Core Influence Calculation
@@ -78,6 +71,13 @@ articles:
   navbar: ~
   contents:
   - getting-started
+
+development:
+  mode: auto
+
+# Disable sections that cause build issues
+build:
+  news: false
 
 footer:
   structure:

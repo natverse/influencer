@@ -84,7 +84,7 @@ print(influence_scores_B)
 
 ## Visualizing Results
 
-```{r plot_results, fig.width=10, fig.height=6}
+```{r plot_results, fig.width=10, fig.height=6, fig.alt="Bar chart comparing influence scores from neurons A and B across target neurons C, D, and E. Shows that neuron A has higher influence on targets C and D, while neuron B has higher influence on target E."}
 # Combine results for comparison
 influence_scores_A$seed <- "A"
 influence_scores_B$seed <- "B"
