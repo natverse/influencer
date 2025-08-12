@@ -223,6 +223,7 @@ calculate_influence_py <- function(ic, seed_ids, silenced_neurons = numeric(0)) 
 #' @param count_thresh Minimum synapse count threshold
 #'
 #' @return Path to temporary SQLite database file
+#' @keywords internal
 create_temp_sqlite <- function(edgelist_simple, meta, count_thresh) {
   # Validate required columns
   required_edge_cols <- c("pre", "post", "count", "norm")
