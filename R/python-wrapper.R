@@ -19,7 +19,16 @@
 #' }
 set_python_env <- function() {
   # Use r-reticulate environment exclusively
-  reticulate::use_condaenv("r-reticulate", required = TRUE)
+  tryCatch({
+    reticulate::use_condaenv("r-reticulate", required = TRUE)
+  }, error = function(e) {
+    if (grepl("Unable to find conda binary", e$message)) {
+      stop("Conda not found. Install conda/miniconda first, then run install_python_influence_calculator()")
+    } else {
+      stop("Failed to activate r-reticulate environment: ", e$message, "\n",
+           "Run: install_python_influence_calculator()")
+    }
+  })
   
   # Check if InfluenceCalculator is available
   tryCatch({
@@ -73,7 +82,18 @@ influence_calculator_py <- function(filename = NULL, edgelist_simple = NULL, met
   
   tryCatch({
     # Use r-reticulate environment exclusively
-    reticulate::use_condaenv("r-reticulate", required = TRUE)
+    tryCatch({
+      reticulate::use_condaenv("r-reticulate", required = TRUE)
+    }, error = function(e) {
+      if (grepl("Unable to find conda binary", e$message)) {
+        stop("Conda not found. Install conda/miniconda first, then run install_python_influence_calculator()\n",
+             "Or use the R implementation: influence_calculator_r()")
+      } else {
+        stop("Failed to activate r-reticulate environment: ", e$message, "\n",
+             "Run: install_python_influence_calculator()\n", 
+             "Or use the R implementation: influence_calculator_r()")
+      }
+    })
     
     # Import Python module with enhanced error handling
     ic_module <- tryCatch({
