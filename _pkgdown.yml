@@ -53,18 +53,13 @@ reference:
   desc: Functions for setting up and managing Python dependencies
   contents:
   - install_python_influence_calculator
-  - install_python_with_uv
   - set_python_env
 
 - title: Utilities and Helpers
   desc: Supporting functions and utilities
   contents:
-  - check_python_compatibility
-  - create_temp_sqlite
-  - get_current_python_env
   - influence_calculator
-  - restore_python_env
-  - switch_to_python_env
+  - create_temp_sqlite
 
 articles:
 - title: Getting Started
