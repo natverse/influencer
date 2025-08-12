@@ -4,24 +4,17 @@
 \alias{set_python_env}
 \title{Set Python Environment for InfluenceCalculator}
 \usage{
-set_python_env(conda_env = NULL, python_path = NULL)
-}
-\arguments{
-\item{conda_env}{Character. Name of conda environment containing the required
-Python packages. If NULL, uses the default Python environment.}
-
-\item{python_path}{Character. Path to specific Python executable. If NULL,
-uses conda_env or default.}
+set_python_env()
 }
 \value{
 Invisible TRUE if successful
 }
 \description{
-Configure the Python environment for use with the ConnectomeInfluenceCalculator
+Configure the r-reticulate Python environment for use with the ConnectomeInfluenceCalculator
 Python library.
 }
 \examples{
 \dontrun{
-set_python_env("ic-env")
+set_python_env()
 }
 }

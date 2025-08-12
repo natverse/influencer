@@ -1,7 +1,7 @@
 #!/bin/bash
 # install_python_deps.sh
 # Installation script for ConnectomeInfluenceCalculator Python dependencies
-# Part of the influencer R package
+# Part of the influencer R package - installs into r-reticulate environment
 
 set -e
 
@@ -21,236 +21,176 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Source common shell profiles to ensure PATH is set correctly
-if [ -f "$HOME/.zshrc" ]; then
-    source "$HOME/.zshrc" 2>/dev/null || true
-elif [ -f "$HOME/.bashrc" ]; then
-    source "$HOME/.bashrc" 2>/dev/null || true
-elif [ -f "$HOME/.bash_profile" ]; then
-    source "$HOME/.bash_profile" 2>/dev/null || true
-fi
-
-# Check prerequisites
-echo -e "${YELLOW}🔍 Checking prerequisites...${NC}"
-if ! command_exists brew; then
-    echo -e "${RED}❌ Error: Homebrew is not installed. Please install it first:${NC}"
-    echo "   /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
-    exit 1
-fi
-
-if ! command_exists uv; then
-    echo -e "${RED}❌ Error: UV is not installed. Please install it first:${NC}"
-    echo "   brew install uv"
-    exit 1
-fi
-
-# Check for Xcode Command Line Tools
-echo "   Checking Xcode Command Line Tools..."
-if ! xcode-select -p >/dev/null 2>&1; then
-    echo -e "${RED}❌ Error: Xcode Command Line Tools not installed.${NC}"
-    echo "   Please install them first with:"
-    echo "   xcode-select --install"
-    echo ""
-    echo "   Then run this script again after the installation completes."
-    exit 1
-fi
-
-# Verify Command Line Tools are properly installed at the expected location
-if [ ! -d "/Library/Developer/CommandLineTools" ]; then
-    echo -e "${RED}❌ Error: Xcode Command Line Tools not properly installed.${NC}"
-    echo "   Expected location: /Library/Developer/CommandLineTools"
-    echo "   Please reinstall with: xcode-select --install"
-    echo ""
-    echo "   If you have Xcode.app installed, you may need to run:"
-    echo "   sudo xcode-select --switch /Library/Developer/CommandLineTools"
-    exit 1
-fi
-
-echo -e "${GREEN}✅ Prerequisites satisfied${NC}"
-echo ""
-
-# Install core dependencies with Homebrew
-echo -e "${YELLOW}🍺 Installing PETSc and SLEPc with Homebrew...${NC}"
-
-# Function to try different installation methods
-install_with_fallback() {
-    local package=$1
-    local package_name=$2
+# Function to fix pyproject.toml license format
+fix_pyproject_toml() {
+    local repo_dir="$1"
+    local pyproject_path="$repo_dir/pyproject.toml"
     
-    if brew list "$package" >/dev/null 2>&1; then
-        echo "   $package_name already installed"
+    if [ -f "$pyproject_path" ]; then
+        echo -e "${YELLOW}🔧 Fixing pyproject.toml license format...${NC}"
+        # Fix the license format from string to object format
+        sed -i.bak 's/^license = "BSD-3-Clause"/license = {text = "BSD-3-Clause"}/' "$pyproject_path"
+        echo -e "${GREEN}✅ pyproject.toml license format fixed${NC}"
         return 0
-    fi
-    
-    echo "   Installing $package_name..."
-    
-    # First, check if there will be Xcode Command Line Tools issues
-    local temp_output=$(mktemp)
-    if brew install "$package" 2>&1 | tee "$temp_output" | grep -q "Xcode Command Line Tools"; then
-        echo -e "${YELLOW}   ⚠️  Detected Xcode Command Line Tools issue${NC}"
-        echo "   Skipping normal installation and trying from source..."
-        rm -f "$temp_output"
-        
-        echo "   Installing $package_name from source (this may take 10-30 minutes)..."
-        if brew install --build-from-source "$package"; then
-            echo "   ✅ $package_name installed successfully from source"
-            return 0
-        else
-            echo -e "${RED}   ❌ Source build failed${NC}"
-        fi
     else
-        # Check if normal installation succeeded
-        if [ $? -eq 0 ]; then
-            echo "   ✅ $package_name installed successfully"
-            rm -f "$temp_output"
-            return 0
-        fi
-    fi
-    
-    rm -f "$temp_output"
-    
-    # Final attempt with more specific error handling
-    echo -e "${RED}❌ Error: Failed to install $package_name.${NC}"
-    echo ""
-    echo "   This is likely due to a Xcode Command Line Tools configuration issue."
-    echo "   Please try the following solutions:"
-    echo ""
-    echo "   1. Reset Xcode Command Line Tools:"
-    echo "      sudo xcode-select --reset"
-    echo "      xcode-select --install"
-    echo ""
-    echo "   2. If you have Xcode.app installed, switch to it:"
-    echo "      sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer"
-    echo ""
-    echo "   3. Or ensure standalone tools are properly linked:"
-    echo "      sudo xcode-select --switch /Library/Developer/CommandLineTools"
-    echo ""
-    echo "   4. After fixing the above, retry this script"
-    echo ""
-    echo "   Alternative: You may also try using conda instead:"
-    echo "   R -e 'influencer::install_python_influence_calculator()'"
-    echo ""
-    return 1
-}
-
-# Install PETSc and SLEPc with fallback strategies
-if ! install_with_fallback "petsc" "PETSc"; then
-    exit 1
-fi
-
-if ! install_with_fallback "slepc" "SLEPc"; then
-    exit 1
-fi
-
-# Set environment variables
-echo -e "${YELLOW}🔧 Setting environment variables...${NC}"
-export PETSC_DIR=$(brew --prefix petsc)
-export SLEPC_DIR=$(brew --prefix slepc)
-
-echo "   PETSC_DIR: $PETSC_DIR"
-echo "   SLEPC_DIR: $SLEPC_DIR"
-echo ""
-
-# Determine environment name and location
-ENV_NAME="influence-py"
-ENV_PATH="$HOME/.local/share/uv/envs/$ENV_NAME"
-
-# Create Python environment with UV
-echo -e "${YELLOW}🐍 Creating Python environment with UV...${NC}"
-echo "   Environment: $ENV_NAME"
-echo "   Location: $ENV_PATH"
-
-# Remove existing environment if it exists
-if [ -d "$ENV_PATH" ]; then
-    echo "   Removing existing environment..."
-    rm -rf "$ENV_PATH"
-fi
-
-uv venv "$HOME/.local/share/uv/envs/$ENV_NAME" --python 3.13.1
-echo ""
-
-# Install Python packages
-echo -e "${YELLOW}📦 Installing Python wrappers (petsc4py, slepc4py)...${NC}"
-
-# Function to install Python packages with fallbacks
-install_python_packages() {
-    echo "   Installing petsc4py and slepc4py..."
-    
-    # Try installing with current PETSc/SLEPc installation
-    if UV_PROJECT_ENVIRONMENT="$HOME/.local/share/uv/envs/$ENV_NAME" uv pip install petsc4py slepc4py 2>/dev/null; then
-        echo "   ✅ Python packages installed successfully"
-    else
-        echo -e "${YELLOW}   ⚠️  Standard installation failed, trying alternative approach...${NC}"
-        
-        # Try installing with specific versions that might have better wheel support
-        if UV_PROJECT_ENVIRONMENT="$HOME/.local/share/uv/envs/$ENV_NAME" uv pip install petsc4py==3.21.0 slepc4py==3.21.0 2>/dev/null; then
-            echo "   ✅ Python packages installed with specific versions"
-        else
-            echo -e "${RED}   ❌ Failed to install Python wrappers${NC}"
-            echo "   This may be due to PETSc/SLEPc installation issues."
-            echo "   Try running the script again after fixing the Homebrew installation."
-            return 1
-        fi
-    fi
-    return 0
-}
-
-if ! install_python_packages; then
-    exit 1
-fi
-
-echo -e "${YELLOW}🧠 Installing ConnectomeInfluenceCalculator from GitHub...${NC}"
-
-# Function to install ConnectomeInfluenceCalculator with automatic fixes
-install_influence_calculator() {
-    # Try standard installation first
-    echo "   Attempting standard installation..."
-    if UV_PROJECT_ENVIRONMENT="$HOME/.local/share/uv/envs/$ENV_NAME" uv pip install git+https://github.com/DrugowitschLab/ConnectomeInfluenceCalculator@v0.3 2>/dev/null; then
-        echo "   ✅ Standard installation successful"
-        return 0
-    fi
-    
-    # If that fails, try with pyproject.toml fix
-    echo -e "${YELLOW}   ⚠️  Standard installation failed, applying pyproject.toml fix...${NC}"
-    
-    # Clone and fix pyproject.toml
-    TEMP_DIR="/tmp/ConnectomeInfluenceCalculator_fixed_$$"
-    if git clone https://github.com/DrugowitschLab/ConnectomeInfluenceCalculator.git "$TEMP_DIR" >/dev/null 2>&1; then
-        echo "   Fixing pyproject.toml license format issue..."
-        sed -i '' 's/^license = "BSD-3-Clause"/license = {text = "BSD-3-Clause"}/' "$TEMP_DIR/pyproject.toml"
-        
-        if UV_PROJECT_ENVIRONMENT="$HOME/.local/share/uv/envs/$ENV_NAME" uv pip install "$TEMP_DIR" 2>/dev/null; then
-            echo "   ✅ Installation successful with pyproject.toml fix"
-            rm -rf "$TEMP_DIR"
-            return 0
-        else
-            echo -e "${RED}   ❌ Installation failed even with pyproject.toml fix${NC}"
-            rm -rf "$TEMP_DIR"
-            return 1
-        fi
-    else
-        echo -e "${RED}   ❌ Could not clone repository for fixing${NC}"
+        echo -e "${YELLOW}⚠️  pyproject.toml not found at $pyproject_path${NC}"
         return 1
     fi
 }
 
-if ! install_influence_calculator; then
-    echo -e "${RED}❌ Error: Failed to install ConnectomeInfluenceCalculator${NC}"
-    echo "   This may be due to:"
-    echo "   - Network connectivity issues"
-    echo "   - Missing system dependencies"
-    echo "   - Upstream repository issues"
-    echo ""
-    echo "   Try the conda-based installation instead:"
-    echo "   R -e 'influencer::install_python_influence_calculator()'"
-    exit 1
-fi
+# Function to try simple pip installation
+try_simple_pip_install() {
+    echo -e "${YELLOW}🚀 Attempting simple pip installation...${NC}"
+    
+    # Clone repository to temporary directory
+    TEMP_IC_DIR="/tmp/ConnectomeInfluenceCalculator_$$"
+    
+    if git clone https://github.com/DrugowitschLab/ConnectomeInfluenceCalculator.git "$TEMP_IC_DIR"; then
+        echo -e "${GREEN}✅ Repository cloned successfully${NC}"
+        
+        # Fix pyproject.toml if needed
+        fix_pyproject_toml "$TEMP_IC_DIR"
+        
+        echo -e "${YELLOW}📦 Installing ConnectomeInfluenceCalculator with pip...${NC}"
+        
+        # Try pip installation in r-reticulate environment
+        if conda run -n r-reticulate python3 -m pip install "$TEMP_IC_DIR"; then
+            echo -e "${GREEN}✅ Simple pip installation successful!${NC}"
+            
+            # Test the installation
+            if conda run -n r-reticulate python -c "from InfluenceCalculator import InfluenceCalculator; print('✅ Import successful!')"; then
+                echo -e "${GREEN}🎉 Installation and import test successful!${NC}"
+                
+                # Cleanup
+                rm -rf "$TEMP_IC_DIR"
+                
+                # Write simple environment info
+                cat > "$HOME/.influencer_env" << EOF
+PYTHON_ENV=r-reticulate
+INSTALL_METHOD=simple_pip
+EOF
+                
+                echo -e "${BLUE}✅ Configuration saved to ~/.influencer_env${NC}"
+                return 0
+            else
+                echo -e "${RED}❌ Import test failed${NC}"
+                rm -rf "$TEMP_IC_DIR"
+                return 1
+            fi
+        else
+            echo -e "${RED}❌ Simple pip installation failed${NC}"
+            rm -rf "$TEMP_IC_DIR"
+            return 1
+        fi
+    else
+        echo -e "${RED}❌ Failed to clone repository${NC}"
+        return 1
+    fi
+}
 
-echo ""
-
-# Test installation
-echo -e "${YELLOW}✅ Testing installation...${NC}"
-UV_PROJECT_ENVIRONMENT="$HOME/.local/share/uv/envs/$ENV_NAME" uv run python -c "
+# Function to install with full PETSc/SLEPc setup
+install_with_petsc_slepc() {
+    echo -e "${YELLOW}🔨 Simple installation failed. Setting up PETSc/SLEPc dependencies...${NC}"
+    
+    # Check if conda is available
+    if ! command_exists conda; then
+        echo -e "${RED}❌ Error: conda not found${NC}"
+        echo "   Please install conda or miniconda first"
+        exit 1
+    fi
+    
+    # Ensure conda solver is set to classic
+    conda config --set solver classic 2>/dev/null || true
+    
+    # Create or update r-reticulate environment if it doesn't exist
+    if ! conda env list | grep -q "^r-reticulate "; then
+        echo -e "${YELLOW}📦 Creating r-reticulate environment...${NC}"
+        conda create -n r-reticulate python=3.11 -y
+    fi
+    
+    echo -e "${YELLOW}🔍 Checking for PETSc and SLEPc in PATH...${NC}"
+    
+    # Check if PETSc/SLEPc are already available
+    petsc_found=false
+    slepc_found=false
+    
+    if command_exists petsc-config || command_exists PETSc-config; then
+        petsc_found=true
+        echo -e "${GREEN}✅ PETSc found in PATH${NC}"
+    fi
+    
+    if command_exists slepc-config || command_exists SLEPc-config; then
+        slepc_found=true
+        echo -e "${GREEN}✅ SLEPc found in PATH${NC}"
+    fi
+    
+    if [ "$petsc_found" = false ] || [ "$slepc_found" = false ]; then
+        echo -e "${YELLOW}⚠️  PETSc/SLEPc not found in PATH${NC}"
+        
+        # Try Homebrew first
+        if command_exists brew; then
+            echo -e "${YELLOW}🍺 Attempting installation via Homebrew...${NC}"
+            
+            if ! brew list petsc >/dev/null 2>&1; then
+                echo "   Installing PETSc..."
+                brew install petsc 2>/dev/null || echo -e "${YELLOW}⚠️  Homebrew PETSc installation failed${NC}"
+            fi
+            
+            if ! brew list slepc >/dev/null 2>&1; then
+                echo "   Installing SLEPc..."
+                brew install slepc 2>/dev/null || echo -e "${YELLOW}⚠️  Homebrew SLEPc installation failed${NC}"
+            fi
+        else
+            echo -e "${YELLOW}⚠️  Homebrew not available, will use conda packages${NC}"
+        fi
+    fi
+    
+    # Install Python packages in r-reticulate environment
+    echo -e "${YELLOW}📦 Installing Python packages...${NC}"
+    
+    # Install petsc4py and slepc4py
+    echo "   Installing petsc4py and slepc4py..."
+    if conda install -n r-reticulate -c conda-forge petsc4py slepc4py -y; then
+        echo -e "${GREEN}✅ PETSc/SLEPc Python packages installed${NC}"
+    else
+        echo -e "${RED}❌ Failed to install PETSc/SLEPc Python packages${NC}"
+        exit 1
+    fi
+    
+    # Install other dependencies
+    echo "   Installing additional dependencies..."
+    conda install -n r-reticulate -c conda-forge pandas numpy bidict -y
+    
+    echo -e "${YELLOW}🧠 Installing ConnectomeInfluenceCalculator...${NC}"
+    
+    # Clone and install ConnectomeInfluenceCalculator
+    TEMP_IC_DIR="/tmp/ConnectomeInfluenceCalculator_$$"
+    if git clone https://github.com/DrugowitschLab/ConnectomeInfluenceCalculator.git "$TEMP_IC_DIR"; then
+        echo "   Installing ConnectomeInfluenceCalculator..."
+        
+        # Fix pyproject.toml if needed
+        fix_pyproject_toml "$TEMP_IC_DIR"
+        
+        # Install using conda run
+        if conda run -n r-reticulate python -m pip install "$TEMP_IC_DIR"; then
+            echo -e "${GREEN}✅ ConnectomeInfluenceCalculator installed successfully${NC}"
+        else
+            echo -e "${RED}❌ Failed to install ConnectomeInfluenceCalculator${NC}"
+            rm -rf "$TEMP_IC_DIR"
+            exit 1
+        fi
+        
+        # Cleanup
+        rm -rf "$TEMP_IC_DIR"
+    else
+        echo -e "${RED}❌ Failed to clone ConnectomeInfluenceCalculator${NC}"
+        exit 1
+    fi
+    
+    # Test the installation
+    echo -e "${YELLOW}✅ Testing installation...${NC}"
+    
+    conda run -n r-reticulate python -c "
 import sys
 print(f'Python version: {sys.version}')
 print('Testing imports...')
@@ -278,29 +218,56 @@ except ImportError as e:
 
 print('🎉 All imports successful!')
 "
+    
+    # Write environment info to file
+    cat > "$HOME/.influencer_env" << EOF
+PYTHON_ENV=r-reticulate
+INSTALL_METHOD=full_petsc_slepc
+EOF
+    
+    echo -e "${BLUE}✅ Configuration saved to ~/.influencer_env${NC}"
+}
+
+# Main installation logic
+echo -e "${YELLOW}🐍 Setting up Python environment (r-reticulate)...${NC}"
+
+# Check if conda is available
+if ! command_exists conda; then
+    echo -e "${RED}❌ Error: conda not found${NC}"
+    echo "   Please install conda or miniconda first"
+    exit 1
+fi
+
+# Fix conda solver issues by using classic solver
+echo -e "${YELLOW}🔧 Configuring conda solver...${NC}"
+conda config --set solver classic 2>/dev/null || true
+echo "   Set conda solver to 'classic' to avoid libmamba issues"
+
+# Ensure r-reticulate environment exists
+if conda env list | grep -q "^r-reticulate "; then
+    echo "   r-reticulate environment already exists"
+else
+    echo "   Creating r-reticulate environment..."
+    conda create -n r-reticulate python=3.11 -y
+fi
+
+# Try simple pip installation first
+if try_simple_pip_install; then
+    echo ""
+    echo -e "${GREEN}🎉 Simple installation completed successfully!${NC}"
+else
+    echo ""
+    echo -e "${YELLOW}💡 Simple pip installation failed, trying full setup...${NC}"
+    install_with_petsc_slepc
+    echo ""
+    echo -e "${GREEN}🎉 Full installation completed successfully!${NC}"
+fi
 
 echo ""
-echo -e "${GREEN}🎉 Installation completed successfully!${NC}"
+echo -e "${BLUE}📝 Environment Configuration:${NC}"
+echo "   Python environment: r-reticulate"
 echo ""
-echo -e "${BLUE}📝 Usage Instructions:${NC}"
-echo "   1. In R, use this environment with:"
-echo "      reticulate::use_virtualenv('$ENV_PATH')"
+echo -e "${YELLOW}💡 To use this installation in R:${NC}"
+echo "   The influencer package will automatically use the r-reticulate environment"
+echo "   No manual configuration needed"
 echo ""
-echo "   2. Or set environment variables for the current session:"
-echo "      export PETSC_DIR=$PETSC_DIR"
-echo "      export SLEPC_DIR=$SLEPC_DIR"
-echo ""
-echo "   3. To activate this environment manually:"
-echo "      source $ENV_PATH/bin/activate"
-echo ""
-echo -e "${BLUE}🔧 Environment Details:${NC}"
-echo "   Name: $ENV_NAME"
-echo "   Path: $ENV_PATH"
-echo "   Python: $(UV_PROJECT_ENVIRONMENT="$ENV_PATH" uv run python --version)"
-echo ""
-echo -e "${YELLOW}💡 Tip: Add the export commands to your ~/.zshrc or ~/.bashrc for persistence${NC}"
-
-#export PETSC_DIR=/usr/local/Cellar/petsc/3.23.5/
-#export SLEPC_DIR=/usr/local/Cellar/slepc/3.23.2/
-#uv add git+https://github.com/DrugowitschLab/ConnectomeInfluenceCalculator --tag v0.3
-

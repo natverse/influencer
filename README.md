@@ -25,21 +25,19 @@ remotes::install_github('natverse/influencer')
 
 ### Python Dependencies (Optional)
 
-For Python wrapper functionality, the package provides automatic installation:
+For Python wrapper functionality, the package provides streamlined installation:
 
 ```r
-# Handles dependencies and environment setup
+# Installs all dependencies into r-reticulate environment
 install_python_influence_calculator()
 ```
 
 **What it does:**
-- Creates conda environment "ic-venv" (recommended name from ConnectomeInfluenceCalculator)
-- Installs PETSc and SLEPc via conda-forge
-- Installs ConnectomeInfluenceCalculator from GitHub
-- Includes automatic fallbacks for common installation issues (MPI conflicts, license format errors)
-- Integrates with RStudio's r-miniconda environment system
-
-**Alternative installation** (UV-based): `install_python_with_uv()`
+- Automatically detects or installs PETSc and SLEPc (via Homebrew or source builds)
+- Uses r-reticulate conda environment exclusively (no additional environments)
+- Installs ConnectomeInfluenceCalculator with automatic issue resolution
+- Local builds install to `~/.local/influencer/` if needed
+- Saves configuration to `~/.influencer_env` for reuse
 
 **Manual installation**: See the [ConnectomeInfluenceCalculator installation guide](https://github.com/DrugowitschLab/ConnectomeInfluenceCalculator#install).
 
@@ -197,14 +195,14 @@ ic.r <- influence_calculator(edgelist_simple = dummy_edges, meta = dummy_meta)
 ## ic.sqlite <- influence_calculator(filename = 'connectome_dataset.sqlite', sqlite = TRUE)
 ```
 
-### Python Wrapper (Auto-Configured)
+### Python Wrapper (Simplified)
 
-The Python wrapper includes **environment switching** for cross-implementation functionality:
+The Python wrapper uses the r-reticulate environment exclusively:
 
 ```r
 library(influencer)
 
-# Install Python dependencies (creates conda environment)
+# Install Python dependencies (into r-reticulate environment)
 install_python_influence_calculator() 
 
 # Create InfluenceCalculator object
@@ -214,18 +212,7 @@ ic.py <- influence_calculator_py('connectome_dataset.sqlite')
 ic.py <- influence_calculator_py(edgelist_simple = dummy_edges, meta = dummy_meta)
 ```
 
-**Python Environment Management**: The Python wrapper handles environment switching:
-- Detects current Python environment configuration
-- Switches to the "ic-venv" environment when needed
-- Provides informative messages about environment changes
-- Works with both r-miniconda and standard conda installations
-
-**Example output:**
-```
-[SUCCESS] Switched to Python environment: r-reticulate
-# or
-[SUCCESS] Switched to Python environment: ic-venv
-```
+**Python Environment**: All Python functionality uses the r-reticulate conda environment, eliminating environment management complexity.
 
 ### Basic Analysis
 
@@ -288,11 +275,9 @@ ic.filtered <- influence_calculator(edgelist_simple = dummy_edges, meta = dummy_
 
 **Python wrapper** (For specialized use cases):
 - Uses original ConnectomeInfluenceCalculator with PETSc/SLEPc
-- **Environment switching** handles architecture conflicts where possible
-- Preserves user's Python environment  
+- Uses r-reticulate environment exclusively
 - May provide speed advantages for very large networks (>100k neurons)
-
-**Architecture Handling**: The Python wrapper detects and attempts to resolve architecture conflicts (e.g., x86_64 R with ARM64 Python on Apple Silicon) through environment switching.
+- Automatic PETSc/SLEPc detection and installation
 
 Both implementations produce highly correlated results with the **R implementation recommended** for typical connectome analysis workflows.
 
@@ -519,8 +504,7 @@ cat("Correlation between DNa03 and DNa06 influence patterns:", round(correlation
 Now compare with the python implementation:
 
 ```r
-# Python implementation (real comparison, no simulation)
-# Python implementation with automatic environment management
+# Python implementation using r-reticulate environment
 system.time({
   ic.dns.py <- influence_calculator_py(edgelist_simple = edges.table, meta = banc.meta)
 })

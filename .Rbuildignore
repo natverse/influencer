@@ -10,7 +10,6 @@
 ^pkgdown$
 ^\.covrignore$
 ^logs$
-^CLAUDE\.md$
 ^continue_vignette\.R$
 ^.*\.png$
 ^.*\.pdf$
@@ -21,5 +20,4 @@
 ^.*\.rej$
 ^.*~$
 ^\.Rhistory$
-^\.claude$
 ^\.\.Rcheck$

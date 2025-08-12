@@ -2,13 +2,13 @@ test_that("R and Python implementations give similar results", {
   # Skip if Python environment is not available
   skip_if_no_python <- function() {
     python_available <- tryCatch({
-      # Set up Python environment explicitly
-      reticulate::use_python("/opt/miniconda3/bin/python", required = TRUE)
+      # Use r-reticulate environment
+      reticulate::use_condaenv("r-reticulate", required = TRUE)
       ic_module <- reticulate::import("InfluenceCalculator")
       TRUE
     }, error = function(e) FALSE)
     
-    skip_if_not(python_available, "Python InfluenceCalculator not available (may be due to architecture mismatch)")
+    skip_if_not(python_available, "Python InfluenceCalculator not available")
   }
   
   skip_if_no_python()
@@ -71,8 +71,8 @@ test_that("R and Python implementations give similar results", {
   # Check that influence scores are reasonably similar
   # (allowing for numerical differences between implementations)
   correlation <- cor(scores_r, scores_py)
-  expect_gt(correlation, 0.95, 
-           info = paste("Correlation between R and Python results:", correlation))
+  expect_gt(correlation, 0.95)
+  cat("Correlation between R and Python results:", correlation, "\n")
   
   # Check that the relative ordering is similar for top influenced neurons
   top_n <- min(20, length(scores_r))
@@ -82,15 +82,15 @@ test_that("R and Python implementations give similar results", {
   # Check overlap in top neurons
   overlap <- length(intersect(top_r, top_py))
   overlap_fraction <- overlap / top_n
-  expect_gt(overlap_fraction, 0.7,
-           info = paste("Overlap in top", top_n, "neurons:", overlap_fraction))
+  expect_gt(overlap_fraction, 0.7)
+  cat("Overlap in top", top_n, "neurons:", overlap_fraction, "\n")
 })
 
 test_that("Both R and Python implementations return character ID columns", {
   # Skip if Python environment is not available
   skip_if_no_python <- function() {
     python_available <- tryCatch({
-      reticulate::use_python("/opt/miniconda3/bin/python", required = TRUE)
+      reticulate::use_condaenv("r-reticulate", required = TRUE)
       ic_module <- reticulate::import("InfluenceCalculator")
       TRUE
     }, error = function(e) FALSE)

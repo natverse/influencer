@@ -11,14 +11,15 @@ test_that("Python wrapper handles missing environment gracefully", {
   # Test that functions give informative errors when Python isn't available
   expect_error(
     influence_calculator_py("nonexistent.sqlite"),
-    "ConnectomeInfluenceCalculator not found|Architecture mismatch detected|Failed to import ConnectomeInfluenceCalculator"
+    "ConnectomeInfluenceCalculator not found|Architecture mismatch detected|Failed to import ConnectomeInfluenceCalculator|Failed to create InfluenceCalculator|no such table"
   )
 })
 
 # Skip Python tests if environment is not available
 skip_if_no_python <- function() {
   python_available <- tryCatch({
-    # Try to import without forcing a specific Python version
+    # Use r-reticulate environment
+    reticulate::use_condaenv("r-reticulate", required = TRUE)
     ic_module <- reticulate::import("InfluenceCalculator")
     TRUE
   }, error = function(e) {
@@ -28,12 +29,7 @@ skip_if_no_python <- function() {
       # This is expected on Apple Silicon with x86_64 R
       FALSE
     } else {
-      # Try with system Python as fallback
-      tryCatch({
-        reticulate::use_python("/opt/miniconda3/bin/python", required = TRUE)
-        ic_module <- reticulate::import("InfluenceCalculator")
-        TRUE
-      }, error = function(e2) FALSE)
+      FALSE
     }
   })
   

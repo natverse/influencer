@@ -30,7 +30,7 @@ Used when filename is NULL.}
 InfluenceCalculator Python object
 }
 \description{
-Create an InfluenceCalculator object using the Python library.
+Create an InfluenceCalculator object using the Python library from the r-reticulate environment.
 Can accept either a SQLite database file or data frames.
 }
 \examples{
