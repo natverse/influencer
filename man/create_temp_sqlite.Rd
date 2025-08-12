@@ -20,3 +20,4 @@ Path to temporary SQLite database file
 Internal helper function to create a temporary SQLite database from R data frames
 for use with the Python InfluenceCalculator library.
 }
+\keyword{internal}
