@@ -29,23 +29,23 @@ NULL
       if (hw_arch == "arm64") {
         packageStartupMessage("Use `influence_calculator_py()` for Python-based calculations")
         packageStartupMessage("Use `influence_calculator_r()` for native R calculations") 
-        packageStartupMessage("Use `set_python_env()` to configure Python environment if needed")
+        packageStartupMessage("Use `install_python_influence_calculator()` to install Python backend if needed")
         packageStartupMessage("")
         packageStartupMessage("Note: Architecture mismatch detected (x86_64 R on Apple Silicon).")
         packageStartupMessage("The R implementation is recommended and optimized for performance.")
       } else {
         packageStartupMessage("Use `influence_calculator_py()` for Python-based calculations")
         packageStartupMessage("Use `influence_calculator_r()` for native R calculations")
-        packageStartupMessage("Use `set_python_env()` to configure Python environment if needed")
+        packageStartupMessage("Use `install_python_influence_calculator()` to install Python backend if needed")
       }
     } else {
       packageStartupMessage("Use `influence_calculator_py()` for Python-based calculations")
       packageStartupMessage("Use `influence_calculator_r()` for native R calculations")
-      packageStartupMessage("Use `set_python_env()` to configure Python environment if needed")
+      packageStartupMessage("Use `install_python_influence_calculator()` to install Python backend if needed")
     }
   }, error = function(e) {
     packageStartupMessage("Use `influence_calculator_py()` for Python-based calculations")
     packageStartupMessage("Use `influence_calculator_r()` for native R calculations")
-    packageStartupMessage("Use `set_python_env()` to configure Python environment if needed")
+    packageStartupMessage("Use `install_python_influence_calculator()` to install Python backend if needed")
   })
 }
