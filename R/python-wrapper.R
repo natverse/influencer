@@ -150,6 +150,9 @@ influence_calculator_py <- function(filename = NULL, edgelist_simple = NULL, met
 #' @param seed_ids Character vector. Root IDs of seed neurons.
 #' @param silenced_neurons Character vector. Root IDs of neurons to silence
 #'   (default: empty vector).
+#' @param seed_name Optional, a seed name for the seed you are running. Will be added as a column value.
+#' @param const Numeric. Constant value to add to log influence scores in adjusted
+#'   influence calculation (default: -24).
 #'
 #' @return Data frame with columns: matrix_index, id, is_seed, influence score, and adjusted_influence.
 #' @export
@@ -159,7 +162,11 @@ influence_calculator_py <- function(filename = NULL, edgelist_simple = NULL, met
 #' ic <- influence_calculator_py("connectome.sqlite")
 #' results <- calculate_influence_py(ic, seed_ids = c(123, 456))
 #' }
-calculate_influence_py <- function(ic, seed_ids, silenced_neurons = numeric(0)) {
+calculate_influence_py <- function(ic, 
+                                   seed_ids, 
+                                   silenced_neurons = numeric(0), 
+                                   seed_name = NULL, 
+                                   const = -24) {
   if (!inherits(ic, "InfluenceCalculatorPy")) {
     stop("ic must be an InfluenceCalculator Python object created by influence_calculator_py()")
   }
@@ -190,12 +197,15 @@ calculate_influence_py <- function(ic, seed_ids, silenced_neurons = numeric(0)) 
     if ("id" %in% names(r_result)) {
       r_result$id <- as.character(r_result$id)
     }
+    if(!is.null(seed_name)){
+      r_result$seed <- seed_name
+    }
     
     # Add adjusted influence column: log(influence) + 24, with floor at 0
     influence_col <- grep("Influence_score", names(r_result), value = TRUE)[1]
     if (!is.na(influence_col)) {
       influence_values <- r_result[[influence_col]]
-      adjusted_inf <- log(influence_values) + 24
+      adjusted_inf <- log(influence_values) - const
       adjusted_inf[adjusted_inf < 0] <- 0  # Apply floor constraint
       r_result$adjusted_influence <- adjusted_inf
     }

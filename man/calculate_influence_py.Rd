@@ -4,7 +4,13 @@
 \alias{calculate_influence_py}
 \title{Calculate Influence Scores Using Python Implementation}
 \usage{
-calculate_influence_py(ic, seed_ids, silenced_neurons = numeric(0))
+calculate_influence_py(
+  ic,
+  seed_ids,
+  silenced_neurons = numeric(0),
+  seed_name = NULL,
+  const = -24
+)
 }
 \arguments{
 \item{ic}{InfluenceCalculator Python object created by \code{influence_calculator_py()}.}
@@ -13,6 +19,11 @@ calculate_influence_py(ic, seed_ids, silenced_neurons = numeric(0))
 
 \item{silenced_neurons}{Character vector. Root IDs of neurons to silence
 (default: empty vector).}
+
+\item{seed_name}{Optional, a seed name for the seed you are running. Will be added as a column value.}
+
+\item{const}{Numeric. Constant value to add to log influence scores in adjusted
+influence calculation (default: -24).}
 }
 \value{
 Data frame with columns: matrix_index, id, is_seed, influence score, and adjusted_influence.

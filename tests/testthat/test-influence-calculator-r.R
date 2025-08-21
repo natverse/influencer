@@ -182,3 +182,44 @@ test_that("R implementation handles large integer IDs correctly", {
   expect_true(large_ids[2] %in% result$id)
   expect_true(large_ids[3] %in% result$id)
 })
+
+test_that("R implementation handles const parameter correctly", {
+  # Create simple test data
+  edgelist_simple <- data.frame(
+    pre = c(1, 2, 3),
+    post = c(2, 3, 1), 
+    count = c(10, 8, 5),
+    norm = c(1, 1, 1)
+  )
+  
+  meta <- data.frame(
+    root_id = c(1, 2, 3),
+    cell_type = c("A", "B", "C")
+  )
+  
+  # Test data frame initialisation with custom const
+  ic.df <- influence_calculator_r(edgelist_simple = edgelist_simple, meta = meta, const = 20)
+  expect_equal(ic.df$const, 20)
+  
+  # Test calculation with default const (from initialization)
+  result1 <- ic.df$calculate_influence(seed_ids = 1)
+  influence_col <- grep("Influence_score", names(result1), value = TRUE)[1]
+  expected_adjusted1 <- log(result1[[influence_col]]) + 20
+  expected_adjusted1[expected_adjusted1 < 0] <- 0
+  expect_equal(result1$adjusted_influence, expected_adjusted1)
+  
+  # Test calculation with custom const parameter at calculation time
+  result2 <- ic.df$calculate_influence(seed_ids = 1, const = 30)
+  expected_adjusted2 <- log(result2[[influence_col]]) + 30
+  expected_adjusted2[expected_adjusted2 < 0] <- 0
+  expect_equal(result2$adjusted_influence, expected_adjusted2)
+  
+  # Verify that the two results are different (different const values)
+  expect_false(identical(result1$adjusted_influence, result2$adjusted_influence))
+  
+  # Test with const = 0 
+  result3 <- ic.df$calculate_influence(seed_ids = 1, const = 0)
+  expected_adjusted3 <- log(result3[[influence_col]])
+  expected_adjusted3[expected_adjusted3 < 0] <- 0
+  expect_equal(result3$adjusted_influence, expected_adjusted3)
+})

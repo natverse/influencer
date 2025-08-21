@@ -128,8 +128,10 @@ InfluenceCalculatorR <- R6::R6Class("InfluenceCalculatorR",
     #'
     #' @param seed_ids Vector of seed neuron IDs
     #' @param silenced_neurons Vector of neuron IDs to silence (default: none, for performance)
+    #' @param const Numeric. Constant value to add to log influence scores in adjusted
+    #'   influence calculation (default: uses value from initialization)
     #' @return Data frame with influence scores and adjusted influence column
-    calculate_influence = function(seed_ids, silenced_neurons = numeric(0)) {
+    calculate_influence = function(seed_ids, silenced_neurons = numeric(0), const = NULL) {
       # Initialize seed stimulation vector (pre-allocated for performance)
       seed_vec <- numeric(self$n_neurons)
       # Convert seed neuron IDs to matrix indices
@@ -164,8 +166,11 @@ InfluenceCalculatorR <- R6::R6Class("InfluenceCalculatorR",
       # Solve the linear dynamical system for steady-state activity
       influence_vec <- private$solve_linear_system(W_norm, -seed_vec)
       
+      # Use provided const or fall back to instance constant
+      const_to_use <- if (is.null(const)) self$const else const
+      
       # Format results as a data frame with neuron IDs and influence scores
-      private$build_influence_dataframe(influence_vec, seed_vec)
+      private$build_influence_dataframe(influence_vec, seed_vec, const_to_use)
     }
   ),
   
@@ -352,7 +357,7 @@ InfluenceCalculatorR <- R6::R6Class("InfluenceCalculatorR",
       return(as.vector(result))
     },
     
-    build_influence_dataframe = function(influence_vec, seed_vec) {
+    build_influence_dataframe = function(influence_vec, seed_vec, const) {
       # Convert complex results to real influence magnitudes
       influence_vec <- abs(Re(influence_vec))
       
@@ -383,7 +388,7 @@ InfluenceCalculatorR <- R6::R6Class("InfluenceCalculatorR",
       result_df[[score_col_name]] <- influence_vec
       
       # Calculate adjusted influence: log(influence) + const, with floor at 0
-      adjusted_inf <- log(influence_vec) + self$const
+      adjusted_inf <- log(influence_vec) + const
       adjusted_inf[adjusted_inf < 0] <- 0  # Apply floor constraint
       result_df$adjusted_influence <- adjusted_inf
       

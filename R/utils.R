@@ -1,78 +1,142 @@
-# function
-calculate_influence_norms <- function(influence.df,
-                                      const = -24){
+#' Calculate adjusted influence scores
+#'
+#' Computes adjusted influence scores by taking the natural logarithm of steady-state 
+#' neural activity and adding a constant to bring values into the non-negative range.
+#' The adjusted influence is defined as: adjusted_influence = log(r) + c, where r is 
+#' the steady-state response and c is a constant. Poorly connected neurons with 
+#' log(r) << c are set to 0.
+#' 
+#' When a 'target' column is present, influence scores are averaged within each target 
+#' group, allowing analysis of influence on cell types or anatomical regions rather 
+#' than individual neurons.
+#'
+#' @param influence_df Data frame, as returned by `calculate_influence`. If a 'target' 
+#'   column is present, influence scores will be grouped and averaged by target.
+#' @param const Constant value added to log(influence) to ensure non-negative adjusted 
+#'   influence scores. Default -24 was chosen so all well-connected neurons have 
+#'   adjusted_influence >= 0.
+#' @param signif Number of significant figures for output values. 
+#'
+#' @return Data frame with adjusted influence columns:
+#' \describe{
+#'   \item{adjusted_influence}{log(summed_influence) + const - basic adjusted influence}
+#'   \item{adjusted_influence_norm_by_targets}{Normalized by number of target neurons: log(summed_influence/n_targets) + const}
+#'   \item{adjusted_influence_norm_by_sources_and_targets}{Normalized by both source and target counts: log(summed_influence/(n_sources * n_targets)) + const}
+#' }
+#' 
+#' @export 
+#'
+#' @examples
+#' \dontrun{
+#' # Basic adjusted influence calculation
+#' ic <- influence_calculator_r(edgelist_simple = edges.table, meta = meta)
+#' influence_scores <- ic$calculate_influence(seed_ids) 
+#' adjusted_scores <- adjust_influence(influence_scores)
+#' head(adjusted_scores)
+#' 
+#' # Group targets by cell type and calculate averaged influence
+#' # This averages influence within each target group
+#' influence_by_celltype <- influence_scores %>%
+#'   dplyr::left_join(meta %>%
+#'                      dplyr::select(root_id, target = cell_type),
+#'                    by = c("id" = "root_id")) %>% 
+#'   adjust_influence()
+#' head(influence_by_celltype)
+#' 
+#' # Group targets by brain region
+#' influence_by_region <- influence_scores %>%
+#'   dplyr::left_join(meta %>%
+#'                      dplyr::select(root_id, target = brain_region),
+#'                    by = c("id" = "root_id")) %>% 
+#'   adjust_influence()
+#' }
+adjust_influence <- function(influence_df,
+                             const = -24,
+                             signif = 6){
   inf.threshold <- exp(const)
-  if(!"target"%in%colnames(influence.df)){
-    influence.df$target <- influence.df$id
+  if(!"target"%in%colnames(influence_df)){
+    influence_df$target <- influence_df$id
     orig.target = FALSE
   }else{
     orig.target = TRUE
   }
-  if(!"influence_syn_original"%in%colnames(influence.df)){
-    influence.df$influence_syn_norm <- 1
+  orig.influence = FALSE
+  if(!"influence_original"%in%colnames(influence_df)){
+    if("Influence_score_(unsigned)"%in%colnames(influence_df) & "Influence_score_(signed)"%in%colnames(influence_df)){
+      stop("both Influence_score_(unsigned) and Influence_score_(signed) given, assign one to influence_original")
+    }else if("Influence_score_(unsigned)"%in%colnames(influence_df)){
+      influence_df$influence_original <- influence_df$`Influence_score_(unsigned)`
+    }else if("Influence_score_(signed)"%in%colnames(influence_df)){
+      influence_df$influence_original <- influence_df$`Influence_score_(signed)`
+    }else{
+      stop("Please provide influence_original, Influence_score_(unsigned) or Influence_score_(signed)")
+    }
+  }else{
+    orig.influence = TRUE
   }
-  if(!"influence_original"%in%colnames(influence.df)){
-    influence.df$influence_original <- influence.df$influence
+  orig.seed = TRUE
+  if(!"seed"%in%colnames(influence_df)){
+    orig.seed = FALSE
+    influence_df$seed <- "1"
   }
-  if(!"influence_norm_original"%in%colnames(influence.df)){
-    influence.df$influence_norm_original <- influence.df$influence_norm
-  }
-  influence.df <- influence.df %>%
+  influence_df <- influence_df %>%
     dplyr::ungroup() %>%
-    dplyr::mutate(no_seeds = .data$influence_original/.data$influence_norm_original,
-                  no_seeds = ifelse(is.na(.data$no_seeds),1,.data$no_seeds),
-                  no_synapses = .data$influence_original/.data$influence_syn_norm) %>%
+    dplyr::group_by(.data$seed) %>%
+    dplyr::mutate(no_sources = sum(.data$is_seed, na.rm = TRUE)) %>%
+    dplyr::ungroup() %>%
     dplyr::group_by(.data$target) %>%
     dplyr::mutate(no_targets = length(unique(.data$id))) %>%
     dplyr::ungroup() %>%
-    dplyr::mutate(
-      no_seeds = as.numeric(.data$no_seeds),
-      no_targets = as.numeric(.data$no_targets)
-    ) %>%
-    dplyr::group_by(.data$seed) %>%
-    dplyr::mutate(influence_per_seed = .data$influence_original*.data$no_seeds,
-                  influence_per_synapse = .data$influence_original*.data$no_synapses) %>%
     dplyr::group_by(.data$target, .data$seed) %>%
-    dplyr::mutate(influence = sum(.data$influence_original,na.rm = TRUE),
-                  total_seeds = sum(.data$no_seeds,na.rm=TRUE),
-                  total_synapses = sum(.data$no_synapses,na.rm=TRUE),
-                  influence_norm = sum(.data$influence_per_seed,na.rm = TRUE)/(.data$total_seeds*.data$no_targets),
-                  influence = ifelse(.data$influence<inf.threshold,inf.threshold,.data$influence),
-                  influence_norm = ifelse(.data$influence_norm<inf.threshold,inf.threshold,.data$influence_norm),
-                  influence_norm = sum(.data$influence_norm,na.rm = TRUE),
-                  influence_syn_norm =  sum(.data$influence_per_synapse,na.rm = TRUE)/(.data$no_targets*.data$total_synapses),
-                  influence_syn_norm = ifelse(.data$influence_syn_norm<inf.threshold,inf.threshold,.data$influence_syn_norm),
-                  influence_syn_norm = sum(.data$influence_syn_norm,na.rm = TRUE),
-                  influence_norm_log = log(.data$influence_norm),
-                  influence_log = log((.data$influence/.data$no_targets)),
-                  influence_syn_norm_log = log(.data$influence_syn_norm)) %>%
+    dplyr::mutate(influence_summed = sum(.data$influence_original,na.rm = TRUE),
+                  influence_summed = ifelse(.data$influence_summed<inf.threshold,inf.threshold,.data$influence_summed),
+                  adjusted_influence_norm_by_sources_and_targets = .data$influence_summed/(.data$no_sources*.data$no_targets),
+                  adjusted_influence_norm_by_sources_and_targets = ifelse(.data$adjusted_influence_norm_by_sources_and_targets<inf.threshold,inf.threshold,.data$adjusted_influence_norm_by_sources_and_targets),
+                  #no_synapses = sum(.data$pre_count,na.rm=TRUE),
+                  #influence_syn_norm =  sum(.data$influence_per_synapse,na.rm = TRUE)/(.data$no_targets*.data$total_synapses),
+                  #influence_syn_norm = ifelse(.data$influence_syn_norm<inf.threshold,inf.threshold,.data$influence_syn_norm),
+                  #influence_syn_norm = sum(.data$influence_syn_norm,na.rm = TRUE),
+                  #influence_syn_norm_log = log(.data$influence_syn_norm),
+                  adjusted_influence = log(.data$influence_summed),
+                  adjusted_influence_norm_by_sources_and_targets = log(.data$adjusted_influence_norm_by_sources_and_targets),
+                  adjusted_influence_norm_by_targets = log((.data$influence_summed/.data$no_targets))) %>%
     dplyr::ungroup() %>%
-    dplyr::mutate(influence_norm_log = .data$influence_norm_log-const,
-                  influence_log = .data$influence_log-const,
-                  influence_syn_norm_log = .data$influence_syn_norm_log-const) %>%
+    dplyr::mutate(#influence_syn_norm_log = .data$influence_syn_norm_log-const,
+      adjusted_influence = .data$adjusted_influence-const,
+      adjusted_influence_norm_by_sources_and_targets = .data$adjusted_influence_norm_by_sources_and_targets-const,
+      adjusted_influence_norm_by_targets = .data$adjusted_influence_norm_by_targets-const) %>%
     dplyr::group_by(.data$seed) %>%
-    dplyr::mutate(influence_log = ifelse(is.na(.data$influence),0,.data$influence_log)
-    ) %>%
+    dplyr::mutate(adjusted_influence = ifelse(is.na(.data$adjusted_influence),0,.data$adjusted_influence),
+                  adjusted_influence_norm_by_targets = ifelse(is.na(.data$adjusted_influence_norm_by_targets),0,.data$adjusted_influence_norm_by_targets),
+                  adjusted_influence_norm_by_sources_and_targets = ifelse(is.na(.data$adjusted_influence_norm_by_sources_and_targets),0,.data$adjusted_influence_norm_by_sources_and_targets)
+                  ) %>%
     dplyr::ungroup() %>%
     dplyr::distinct(.data$target, .data$seed, .keep_all = TRUE) %>%
-    dplyr::mutate(influence = signif(.data$influence,4),
-                  influence_log = signif(.data$influence_log,4),
-                  influence_norm = signif(.data$influence_norm,4),
-                  influence_norm_log = signif(.data$influence_norm_log,4)
+    dplyr::mutate(adjusted_influence = signif(.data$adjusted_influence,signif),
+                  adjusted_influence_norm_by_targets = signif(.data$adjusted_influence_norm_by_targets,signif),
+                  adjusted_influence_norm_by_sources_and_targets = signif(.data$adjusted_influence_norm_by_sources_and_targets,signif)
     ) %>%
     dplyr::distinct(.data$target,
                     .data$seed, 
                     .keep_all = TRUE) %>%
     dplyr::ungroup() %>%
-    dplyr::mutate(influence = signif(.data$influence,4),
-                  influence_log = signif(.data$influence_log,4),
-                  influence_norm = signif(.data$influence_norm,4),
-                  influence_syn_norm = signif(.data$influence_syn_norm,4),
-                  influence_norm_log = signif(.data$influence_norm_log,4),
-                  influence_syn_norm_log = signif(.data$influence_syn_norm_log,4)
-    ) 
+    dplyr::mutate(adjusted_influence = signif(.data$adjusted_influence,signif),
+                  adjusted_influence_norm_by_targets = signif(.data$adjusted_influence_norm_by_targets,signif),
+                  # influence_syn_norm = signif(.data$influence_syn_norm,signif),
+                  # influence_syn_norm_log = signif(.data$influence_syn_norm_log,signif),
+                  adjusted_influence_norm_by_sources_and_targets = signif(.data$adjusted_influence_norm_by_sources_and_targets,signif)
+    ) %>%
+    dplyr::select(-"influence_summed",
+                  -"no_targets",
+                  -"no_sources")
   if(!orig.target){
-    influence.df$target <- NULL
+    influence_df$target <- NULL
   }
-  influence.df
+  if(!orig.influence){
+    influence_df$influence_original <- NULL
+  }
+  if(!orig.seed){
+    influence_df$seed <- NULL
+  }
+  influence_df
 }

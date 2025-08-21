@@ -93,7 +93,8 @@ Calculate influence scores for given seed neurons
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{InfluenceCalculatorR$calculate_influence(
   seed_ids,
-  silenced_neurons = numeric(0)
+  silenced_neurons = numeric(0),
+  const = NULL
 )}\if{html}{\out{</div>}}
 }
 
@@ -103,6 +104,9 @@ Calculate influence scores for given seed neurons
 \item{\code{seed_ids}}{Vector of seed neuron IDs}
 
 \item{\code{silenced_neurons}}{Vector of neuron IDs to silence (default: none, for performance)}
+
+\item{\code{const}}{Numeric. Constant value to add to log influence scores in adjusted
+influence calculation (default: uses value from initialization)}
 }
 \if{html}{\out{</div>}}
 }

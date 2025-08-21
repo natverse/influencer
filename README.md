@@ -198,7 +198,7 @@ dummy_edges <- data.frame(
 dummy_meta <- data.frame(
   root_id = c(1, 2, 3),         # neuron IDs
   cell_type = c("A", "B", "C"), # cell type annotations
-  super_class = c("motor", "sensory", "interneuron")
+  super_class = c("motor", "sensory", "motor")
 )
 
 # Create InfluenceCalculator object using data frames
@@ -255,7 +255,53 @@ head(influence.df)
 # The results include:
 # - Raw influence scores in Influence_score_(unsigned) or Influence_score_(signed)
 # - adjusted_influence = max(0, log(influence_score) + 24)
+```
 
+### Analyzing Influence by Target Groups
+
+A key feature of the `adjust_influence()` function is the ability to group target neurons and calculate averaged influence scores within each group:
+
+```r
+library(dplyr)
+
+# Calculate influence scores for motor neuron seeds
+motor_influence <- ic.df$calculate_influence(seed.ids)
+
+# Group targets by super class and calculate averaged influence per super class
+influence_by_superclass <- motor_influence %>%
+  left_join(ic.df$meta %>%
+              select(root_id, target = super_class),
+            by = c("id" = "root_id")) %>% 
+  adjust_influence()
+
+head(influence_by_superclass)
+# This returns one row per target group (super_class) rather than per individual neuron
+
+# Group by more specific cell types
+influence_by_celltype <- motor_influence %>%
+  left_join(ic.df$meta %>%
+              select(root_id, target = cell_type),
+            by = c("id" = "root_id")) %>% 
+  adjust_influence()
+hist(influence_by_celltype$adjusted_influence_norm_by_targets)
+
+# The adjust_influence() function automatically:
+# 1. Groups neurons by the 'target' column
+# 2. Averages influence scores within each group  
+# 3. Normalizes by number of targets and sources
+# 4. Returns adjusted influence scores for each target group
+
+# Understanding the adjusted influence columns:
+# - adjusted_influence: log(summed_influence) + const (basic adjusted influence)
+# - adjusted_influence_norm_by_targets: log(summed_influence/n_targets) + const
+# - adjusted_influence_norm_by_sources_and_targets: log(summed_influence/(n_sources * n_targets)) + const
+#
+# Use normalized versions when comparing across groups with different sizes
+```
+
+### Legacy SQLite Usage
+
+```r
 # Using SQLite database (legacy)
 ic.sqlite <- influence_calculator(filename = 'connectome_dataset.sqlite', 
                                   sqlite = TRUE, signed = TRUE, count_thresh = 3)
