@@ -13,8 +13,9 @@
 #' @param influence_df Data frame, as returned by `calculate_influence`. If a 'target' 
 #'   column is present, influence scores will be grouped and averaged by target.
 #' @param const Constant value added to log(influence) to ensure non-negative adjusted 
-#'   influence scores. Default -24 was chosen so all well-connected neurons have 
-#'   adjusted_influence >= 0.
+#'   influence scores. Should be set to -log(minimum_accepted_influence) where 
+#'   minimum_accepted_influence is the smallest influence value considered meaningful. 
+#'   Default 24 corresponds to minimum_accepted_influence = exp(-24) ≈ 3.78e-11.
 #' @param signif Number of significant figures for output values. 
 #'
 #' @return Data frame with adjusted influence columns:
@@ -34,6 +35,11 @@
 #' adjusted_scores <- adjust_influence(influence_scores)
 #' head(adjusted_scores)
 #' 
+#' # Determine const based on your minimum meaningful influence
+#' min_meaningful_influence <- 1e-10  # Set your threshold
+#' custom_const <- -log(min_meaningful_influence)  # const = 23.03
+#' adjusted_scores_custom <- adjust_influence(influence_scores, const = custom_const)
+#' 
 #' # Group targets by cell type and calculate averaged influence
 #' # This averages influence within each target group
 #' influence_by_celltype <- influence_scores %>%
@@ -51,9 +57,9 @@
 #'   adjust_influence()
 #' }
 adjust_influence <- function(influence_df,
-                             const = -24,
+                             const = 24,
                              signif = 6){
-  inf.threshold <- exp(const)
+  inf.threshold <- exp(-const)
   if(!"target"%in%colnames(influence_df)){
     influence_df$target <- influence_df$id
     orig.target = FALSE
@@ -101,10 +107,10 @@ adjust_influence <- function(influence_df,
                   adjusted_influence_norm_by_sources_and_targets = log(.data$adjusted_influence_norm_by_sources_and_targets),
                   adjusted_influence_norm_by_targets = log((.data$influence_summed/.data$no_targets))) %>%
     dplyr::ungroup() %>%
-    dplyr::mutate(#influence_syn_norm_log = .data$influence_syn_norm_log-const,
-      adjusted_influence = .data$adjusted_influence-const,
-      adjusted_influence_norm_by_sources_and_targets = .data$adjusted_influence_norm_by_sources_and_targets-const,
-      adjusted_influence_norm_by_targets = .data$adjusted_influence_norm_by_targets-const) %>%
+    dplyr::mutate(#influence_syn_norm_log = .data$influence_syn_norm_log+const,
+      adjusted_influence = .data$adjusted_influence+const,
+      adjusted_influence_norm_by_sources_and_targets = .data$adjusted_influence_norm_by_sources_and_targets+const,
+      adjusted_influence_norm_by_targets = .data$adjusted_influence_norm_by_targets+const) %>%
     dplyr::group_by(.data$seed) %>%
     dplyr::mutate(adjusted_influence = ifelse(is.na(.data$adjusted_influence),0,.data$adjusted_influence),
                   adjusted_influence_norm_by_targets = ifelse(is.na(.data$adjusted_influence_norm_by_targets),0,.data$adjusted_influence_norm_by_targets),

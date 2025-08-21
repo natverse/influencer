@@ -105,8 +105,10 @@ Calculate influence scores for given seed neurons
 
 \item{\code{silenced_neurons}}{Vector of neuron IDs to silence (default: none, for performance)}
 
-\item{\code{const}}{Numeric. Constant value to add to log influence scores in adjusted
-influence calculation (default: uses value from initialization)}
+\item{\code{const}}{Constant value added to log(influence) to ensure non-negative adjusted
+influence scores. Should be set to -log(minimum_accepted_influence) where
+minimum_accepted_influence is the smallest influence value considered meaningful.
+If NULL, uses value from initialization (default: NULL).}
 }
 \if{html}{\out{</div>}}
 }

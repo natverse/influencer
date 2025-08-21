@@ -151,8 +151,10 @@ influence_calculator_py <- function(filename = NULL, edgelist_simple = NULL, met
 #' @param silenced_neurons Character vector. Root IDs of neurons to silence
 #'   (default: empty vector).
 #' @param seed_name Optional, a seed name for the seed you are running. Will be added as a column value.
-#' @param const Numeric. Constant value to add to log influence scores in adjusted
-#'   influence calculation (default: -24).
+#' @param const Constant value added to log(influence) to ensure non-negative adjusted 
+#'   influence scores. Should be set to -log(minimum_accepted_influence) where 
+#'   minimum_accepted_influence is the smallest influence value considered meaningful. 
+#'   Default 24 corresponds to minimum_accepted_influence = exp(-24) ≈ 3.78e-11.
 #'
 #' @return Data frame with columns: matrix_index, id, is_seed, influence score, and adjusted_influence.
 #' @export
@@ -166,7 +168,7 @@ calculate_influence_py <- function(ic,
                                    seed_ids, 
                                    silenced_neurons = numeric(0), 
                                    seed_name = NULL, 
-                                   const = -24) {
+                                   const = 24) {
   if (!inherits(ic, "InfluenceCalculatorPy")) {
     stop("ic must be an InfluenceCalculator Python object created by influence_calculator_py()")
   }
@@ -201,11 +203,11 @@ calculate_influence_py <- function(ic,
       r_result$seed <- seed_name
     }
     
-    # Add adjusted influence column: log(influence) + 24, with floor at 0
+    # Add adjusted influence column: log(influence) + const, with floor at 0
     influence_col <- grep("Influence_score", names(r_result), value = TRUE)[1]
     if (!is.na(influence_col)) {
       influence_values <- r_result[[influence_col]]
-      adjusted_inf <- log(influence_values) - const
+      adjusted_inf <- log(influence_values) + const
       adjusted_inf[adjusted_inf < 0] <- 0  # Apply floor constraint
       r_result$adjusted_influence <- adjusted_inf
     }

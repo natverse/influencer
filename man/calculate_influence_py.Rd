@@ -9,7 +9,7 @@ calculate_influence_py(
   seed_ids,
   silenced_neurons = numeric(0),
   seed_name = NULL,
-  const = -24
+  const = 24
 )
 }
 \arguments{
@@ -22,8 +22,10 @@ calculate_influence_py(
 
 \item{seed_name}{Optional, a seed name for the seed you are running. Will be added as a column value.}
 
-\item{const}{Numeric. Constant value to add to log influence scores in adjusted
-influence calculation (default: -24).}
+\item{const}{Constant value added to log(influence) to ensure non-negative adjusted
+influence scores. Should be set to -log(minimum_accepted_influence) where
+minimum_accepted_influence is the smallest influence value considered meaningful.
+Default 24 corresponds to minimum_accepted_influence = exp(-24) ≈ 3.78e-11.}
 }
 \value{
 Data frame with columns: matrix_index, id, is_seed, influence score, and adjusted_influence.

@@ -32,8 +32,11 @@ Required when sqlite = FALSE.}
 
 \item{count_thresh}{Numeric. Minimum threshold count (default: 3).}
 
-\item{const}{Numeric. Constant value to add to log influence scores in adjusted
-influence calculation (default: 24). Only used for R implementation.}
+\item{const}{Constant value added to log(influence) to ensure non-negative adjusted
+influence scores. Should be set to -log(minimum_accepted_influence) where
+minimum_accepted_influence is the smallest influence value considered meaningful.
+Default 24 corresponds to minimum_accepted_influence = exp(-24) ≈ 3.78e-11.
+Only used for R implementation.}
 }
 \value{
 InfluenceCalculator object (either Python or R implementation)

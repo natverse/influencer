@@ -12,8 +12,10 @@
 #' @param signed Logical. Whether to use signed connectivity matrix (default: FALSE).
 #' @param count_thresh Numeric. Minimum threshold count for postsynaptic connections
 #'   (default: 3).
-#' @param const Numeric. Constant value to add to log influence scores in adjusted
-#'   influence calculation to being scores above 0 and set 'junk' to 0 (default: 24).
+#' @param const Constant value added to log(influence) to ensure non-negative adjusted 
+#'   influence scores. Should be set to -log(minimum_accepted_influence) where 
+#'   minimum_accepted_influence is the smallest influence value considered meaningful. 
+#'   Default 24 corresponds to minimum_accepted_influence = exp(-24) ≈ 3.78e-11.
 #' @param neg_neurotransmitters Character Neurotransmitters that receive negative signs if requested. Must be present in `top_nt`
 #'   field of `meta`.
 #'
@@ -128,8 +130,10 @@ InfluenceCalculatorR <- R6::R6Class("InfluenceCalculatorR",
     #'
     #' @param seed_ids Vector of seed neuron IDs
     #' @param silenced_neurons Vector of neuron IDs to silence (default: none, for performance)
-    #' @param const Numeric. Constant value to add to log influence scores in adjusted
-    #'   influence calculation (default: uses value from initialization)
+    #' @param const Constant value added to log(influence) to ensure non-negative adjusted 
+    #'   influence scores. Should be set to -log(minimum_accepted_influence) where 
+    #'   minimum_accepted_influence is the smallest influence value considered meaningful. 
+    #'   If NULL, uses value from initialization (default: NULL).
     #' @return Data frame with influence scores and adjusted influence column
     calculate_influence = function(seed_ids, silenced_neurons = numeric(0), const = NULL) {
       # Initialize seed stimulation vector (pre-allocated for performance)
@@ -411,8 +415,11 @@ InfluenceCalculatorR <- R6::R6Class("InfluenceCalculatorR",
 #' @param method Character. Either "python" or "r" (default: "r").
 #' @param signed Logical. Whether to use signed connectivity matrix (default: FALSE).
 #' @param count_thresh Numeric. Minimum threshold count (default: 3).
-#' @param const Numeric. Constant value to add to log influence scores in adjusted
-#'   influence calculation (default: 24). Only used for R implementation.
+#' @param const Constant value added to log(influence) to ensure non-negative adjusted 
+#'   influence scores. Should be set to -log(minimum_accepted_influence) where 
+#'   minimum_accepted_influence is the smallest influence value considered meaningful. 
+#'   Default 24 corresponds to minimum_accepted_influence = exp(-24) ≈ 3.78e-11. 
+#'   Only used for R implementation.
 #'
 #' @return InfluenceCalculator object (either Python or R implementation)
 #' @export

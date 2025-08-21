@@ -4,15 +4,16 @@
 \alias{adjust_influence}
 \title{Calculate adjusted influence scores}
 \usage{
-adjust_influence(influence_df, const = -24, signif = 6)
+adjust_influence(influence_df, const = 24, signif = 6)
 }
 \arguments{
 \item{influence_df}{Data frame, as returned by \code{calculate_influence}. If a 'target'
 column is present, influence scores will be grouped and averaged by target.}
 
 \item{const}{Constant value added to log(influence) to ensure non-negative adjusted
-influence scores. Default -24 was chosen so all well-connected neurons have
-adjusted_influence >= 0.}
+influence scores. Should be set to -log(minimum_accepted_influence) where
+minimum_accepted_influence is the smallest influence value considered meaningful.
+Default 24 corresponds to minimum_accepted_influence = exp(-24) ≈ 3.78e-11.}
 
 \item{signif}{Number of significant figures for output values.}
 }
@@ -43,6 +44,11 @@ ic <- influence_calculator_r(edgelist_simple = edges.table, meta = meta)
 influence_scores <- ic$calculate_influence(seed_ids) 
 adjusted_scores <- adjust_influence(influence_scores)
 head(adjusted_scores)
+
+# Determine const based on your minimum meaningful influence
+min_meaningful_influence <- 1e-10  # Set your threshold
+custom_const <- -log(min_meaningful_influence)  # const = 23.03
+adjusted_scores_custom <- adjust_influence(influence_scores, const = custom_const)
 
 # Group targets by cell type and calculate averaged influence
 # This averages influence within each target group

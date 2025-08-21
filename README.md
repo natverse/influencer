@@ -293,10 +293,18 @@ hist(influence_by_celltype$adjusted_influence_norm_by_targets)
 
 # Understanding the adjusted influence columns:
 # - adjusted_influence: log(summed_influence) + const (basic adjusted influence)
-# - adjusted_influence_norm_by_targets: log(summed_influence/n_targets) + const
+# - adjusted_influence_norm_by_targets: log(summed_influence/n_targets) + const  
 # - adjusted_influence_norm_by_sources_and_targets: log(summed_influence/(n_sources * n_targets)) + const
 #
+# Setting the const parameter:
+# const should be set to -log(minimum_accepted_influence)
+# where minimum_accepted_influence is your threshold for meaningful influence
+# Default const = 24 corresponds to minimum_accepted_influence = exp(-24) ≈ 3.78e-11
 # Use normalized versions when comparing across groups with different sizes
+
+# Example: Set custom threshold
+min_meaningful_influence <- 1e-8  # Your threshold
+custom_const <- -log(min_meaningful_influence)  # const = 18.42
 ```
 
 ### Legacy SQLite Usage
