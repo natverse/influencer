@@ -76,6 +76,25 @@ The influence of any seed is defined as the magnitude of neural activity at stea
 
 This is a linear system, and so the results should be additive between seed runs. The non-linear effects of convergent information flow are not considered.
 
+Typically, we use ‘adjusted influence’ which zeros out 'junk scores', takes the natural log of the influence score and adjusts it to be above zero for ease of analysis. This can be expressed as:
+
+```
+adjusted_influence = natural_log(raw_influence) + c
+```
+
+Where `c` is the score that any 'junk nodes' receive, i.e. nodes that are almost disconnected from the graph, in a chain of wekaly connected such nodes. For the BANC connectome, we used `c=24`. 
+
+When you run a seed, you can have multiple neurons in it. When calculating across multiple seeds, you can just do:
+
+```
+adjusted_influence = natural_log( sum(raw_influence_seed1,  raw_influence_seed2, ... ) ) + c
+```
+
+And when averaging over multiple target neurons, one can do:
+
+```
+adjusted_influence = natural_log( sum(raw_influence_to_target1,  raw_influence_to_target2, ... ) / no_target_neurons ) + c
+```
 
 ## Quick Start
 
