@@ -6,7 +6,7 @@ home:
   title: "Connectome Influence Analysis"
   description: |
     R tools for analyzing influence propagation in neural connectomes.
-    Provides both native R implementations and Python integration for 
+    Provides both native R implementations and Python integration for
     calculating how neural signals propagate through network connections.
   sidebar: false
 
@@ -48,6 +48,7 @@ reference:
   - influence_calculator_py
   - calculate_influence_py
   - InfluenceCalculatorR
+  - adjust_influence
 
 - title: Python Environment Management
   desc: Functions for setting up and managing Python dependencies
