@@ -128,7 +128,18 @@ influence_scores <- ic$calculate_influence("A")
 print(influence_scores)
 ```
 
-### 3. Real Data Example - BANC Connectome
+### 3. Want Python Backend?
+```r
+# One-time setup
+install_python_influence_calculator()
+
+# Then use Python implementation
+ic_py <- influence_calculator_py(edgelist_simple = edges, meta = meta, count_thresh = 0)
+influence_scores_py <- calculate_influence_py(ic = ic_py, "A")
+print(influence_scores_py)
+```
+
+### 4. Real Data Example - BANC Connectome
 ```r
 # Install bancr package for BANC connectome data access
 remotes::install_github('flyconnectome/bancr')
@@ -148,15 +159,6 @@ banc_edges <- banc_edgelist() %>%
 # Analyze descending neurons
 ic_banc <- influence_calculator_r(edgelist_simple = banc_edges, meta = banc_meta)
 dna_influence <- ic_banc$calculate_influence(seed_neuron_ids)
-```
-
-### 4. Want Python Backend?
-```r
-# One-time setup
-install_python_influence_calculator()
-
-# Then use Python implementation
-ic_py <- influence_calculator_py(edgelist_simple = edges, meta = meta)
 ```
 
 **more?** See the [full tutorial](articles/banc-connectome-analysis.html) with real BANC data analysis.
