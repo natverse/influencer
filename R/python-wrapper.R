@@ -67,8 +67,11 @@ set_python_env <- function() {
 #' # Using data frames
 #' ic <- influence_calculator_py(edgelist_simple = my_edges, meta = my_meta)
 #' }
-influence_calculator_py <- function(filename = NULL, edgelist_simple = NULL, meta = NULL, 
-                                   signed = FALSE, count_thresh = 5) {
+influence_calculator_py <- function(filename = NULL, 
+                                    edgelist_simple = NULL, 
+                                    meta = NULL, 
+                                    signed = FALSE, 
+                                    count_thresh = 5) {
   # Validate input arguments
   if (is.null(filename) && (is.null(edgelist_simple) || is.null(meta))) {
     stop("Either filename or both edgelist_simple and meta must be provided")
@@ -193,7 +196,7 @@ calculate_influence_py <- function(ic,
     })
     
     # Convert pandas DataFrame to R data frame
-    r_result <- reticulate::py_to_r(result)
+    r_result <- result  # reticulate::py_to_r(result)
     
     # Ensure id column is character type (prevent scientific notation for large IDs)
     if ("id" %in% names(r_result)) {
@@ -236,7 +239,9 @@ calculate_influence_py <- function(ic,
 #'
 #' @return Path to temporary SQLite database file
 #' @keywords internal
-create_temp_sqlite <- function(edgelist_simple, meta, count_thresh) {
+create_temp_sqlite <- function(edgelist_simple, 
+                               meta, 
+                               count_thresh) {
   # Validate required columns
   required_edge_cols <- c("pre", "post", "count", "norm")
   missing_edge_cols <- setdiff(required_edge_cols, names(edgelist_simple))
@@ -264,7 +269,7 @@ create_temp_sqlite <- function(edgelist_simple, meta, count_thresh) {
     
     # Add post_count column if not present
     if (!"post_count" %in% names(filtered_edgelist)) {
-      filtered_edgelist$post_count <- round(filtered_edgelist$count / filtered_edgelist$norm)
+      filtered_edgelist$post_count <- round(filtered_edgelist$count / filtered_edgelist$norm, digits = 6)
     }
     
     # Ensure ID columns are character type before writing to SQLite
