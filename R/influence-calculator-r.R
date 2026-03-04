@@ -184,10 +184,16 @@ InfluenceCalculatorR <- R6::R6Class("InfluenceCalculatorR",
     
     compute_edgelist_hash = function(elist) {
       # Create a reproducible hash of the edgelist for caching
-      # Include key columns that affect connectivity matrix
-      key_data <- paste(elist$pre, elist$post, elist$count, elist$norm, 
-                       self$W_signed, collapse = "|")
-      digest::digest(key_data, algo = "sha256")
+      # Hash each column separately to avoid exceeding R's 2^31-1 byte paste limit
+      # on large edgelists (100M+ rows)
+      col_hashes <- c(
+        digest::digest(elist$pre, algo = "sha256"),
+        digest::digest(elist$post, algo = "sha256"),
+        digest::digest(elist$count, algo = "sha256"),
+        digest::digest(elist$norm, algo = "sha256"),
+        digest::digest(self$W_signed, algo = "sha256")
+      )
+      digest::digest(col_hashes, algo = "sha256")
     },
     
     get_normalized_W = function() {
