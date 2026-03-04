@@ -88,7 +88,8 @@ adjust_influence <- function(influence_df,
   influence_df <- influence_df %>%
     dplyr::ungroup() %>%
     dplyr::group_by(.data$seed) %>%
-    dplyr::mutate(no_sources = sum(.data$is_seed, na.rm = TRUE)) %>%
+    dplyr::mutate(no_sources = sum(.data$is_seed, na.rm = TRUE),
+                  no_sources = ifelse(no_sources==0,1,no_sources)) %>%
     dplyr::ungroup() %>%
     dplyr::group_by(.data$target) %>%
     dplyr::mutate(no_targets = length(unique(.data$id))) %>%
