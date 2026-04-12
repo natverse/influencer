@@ -4,7 +4,7 @@
 \alias{adjust_influence}
 \title{Calculate adjusted influence scores}
 \usage{
-adjust_influence(influence_df, const = 24, signif = 6)
+adjust_influence(influence_df, const = 24, signif = 6, minmax = FALSE)
 }
 \arguments{
 \item{influence_df}{Data frame, as returned by \code{calculate_influence}. If a 'target'
@@ -16,6 +16,9 @@ minimum_accepted_influence is the smallest influence value considered meaningful
 Default 24 corresponds to minimum_accepted_influence = exp(-24) ≈ 3.78e-11.}
 
 \item{signif}{Number of significant figures for output values.}
+
+\item{minmax}{Logical. If TRUE, add min-max normalised columns by target and by seed.
+Default FALSE for backwards compatibility.}
 }
 \value{
 Data frame with adjusted influence columns:
@@ -23,6 +26,8 @@ Data frame with adjusted influence columns:
 \item{adjusted_influence}{log(summed_influence) + const - basic adjusted influence}
 \item{adjusted_influence_norm_by_targets}{Normalized by number of target neurons: log(summed_influence/n_targets) + const}
 \item{adjusted_influence_norm_by_sources_and_targets}{Normalized by both source and target counts: log(summed_influence/(n_sources * n_targets)) + const}
+\item{adjusted_influence_minmax_by_target}{(if minmax=TRUE) Min-max normalised adjusted_influence within each target group}
+\item{adjusted_influence_minmax_by_seed}{(if minmax=TRUE) Min-max normalised adjusted_influence within each seed group}
 }
 }
 \description{
@@ -41,7 +46,7 @@ than individual neurons.
 \dontrun{
 # Basic adjusted influence calculation
 ic <- influence_calculator_r(edgelist_simple = edges.table, meta = meta)
-influence_scores <- ic$calculate_influence(seed_ids) 
+influence_scores <- ic$calculate_influence(seed_ids)
 adjusted_scores <- adjust_influence(influence_scores)
 head(adjusted_scores)
 
@@ -55,7 +60,7 @@ adjusted_scores_custom <- adjust_influence(influence_scores, const = custom_cons
 influence_by_celltype <- influence_scores \%>\%
   dplyr::left_join(meta \%>\%
                      dplyr::select(root_id, target = cell_type),
-                   by = c("id" = "root_id")) \%>\% 
+                   by = c("id" = "root_id")) \%>\%
   adjust_influence()
 head(influence_by_celltype)
 
@@ -63,7 +68,7 @@ head(influence_by_celltype)
 influence_by_region <- influence_scores \%>\%
   dplyr::left_join(meta \%>\%
                      dplyr::select(root_id, target = brain_region),
-                   by = c("id" = "root_id")) \%>\% 
+                   by = c("id" = "root_id")) \%>\%
   adjust_influence()
 }
 }

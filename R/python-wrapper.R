@@ -71,7 +71,7 @@ influence_calculator_py <- function(filename = NULL,
                                     edgelist_simple = NULL, 
                                     meta = NULL, 
                                     signed = FALSE, 
-                                    count_thresh = 5) {
+                                    count_thresh = 0) {
   # Validate input arguments
   if (is.null(filename) && (is.null(edgelist_simple) || is.null(meta))) {
     stop("Either filename or both edgelist_simple and meta must be provided")

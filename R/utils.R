@@ -1,149 +1,169 @@
 #' Calculate adjusted influence scores
 #'
-#' Computes adjusted influence scores by taking the natural logarithm of steady-state 
+#' Computes adjusted influence scores by taking the natural logarithm of steady-state
 #' neural activity and adding a constant to bring values into the non-negative range.
-#' The adjusted influence is defined as: adjusted_influence = log(r) + c, where r is 
-#' the steady-state response and c is a constant. Poorly connected neurons with 
+#' The adjusted influence is defined as: adjusted_influence = log(r) + c, where r is
+#' the steady-state response and c is a constant. Poorly connected neurons with
 #' log(r) << c are set to 0.
-#' 
-#' When a 'target' column is present, influence scores are averaged within each target 
-#' group, allowing analysis of influence on cell types or anatomical regions rather 
+#'
+#' When a 'target' column is present, influence scores are averaged within each target
+#' group, allowing analysis of influence on cell types or anatomical regions rather
 #' than individual neurons.
 #'
-#' @param influence_df Data frame, as returned by `calculate_influence`. If a 'target' 
+#' @param influence_df Data frame, as returned by `calculate_influence`. If a 'target'
 #'   column is present, influence scores will be grouped and averaged by target.
-#' @param const Constant value added to log(influence) to ensure non-negative adjusted 
-#'   influence scores. Should be set to -log(minimum_accepted_influence) where 
-#'   minimum_accepted_influence is the smallest influence value considered meaningful. 
+#' @param const Constant value added to log(influence) to ensure non-negative adjusted
+#'   influence scores. Should be set to -log(minimum_accepted_influence) where
+#'   minimum_accepted_influence is the smallest influence value considered meaningful.
 #'   Default 24 corresponds to minimum_accepted_influence = exp(-24) ≈ 3.78e-11.
-#' @param signif Number of significant figures for output values. 
+#' @param signif Number of significant figures for output values.
+#' @param minmax Logical. If TRUE, add min-max normalised columns by target and by seed.
+#'   Default FALSE for backwards compatibility.
 #'
 #' @return Data frame with adjusted influence columns:
 #' \describe{
 #'   \item{adjusted_influence}{log(summed_influence) + const - basic adjusted influence}
 #'   \item{adjusted_influence_norm_by_targets}{Normalized by number of target neurons: log(summed_influence/n_targets) + const}
 #'   \item{adjusted_influence_norm_by_sources_and_targets}{Normalized by both source and target counts: log(summed_influence/(n_sources * n_targets)) + const}
+#'   \item{adjusted_influence_minmax_by_target}{(if minmax=TRUE) Min-max normalised adjusted_influence within each target group}
+#'   \item{adjusted_influence_minmax_by_seed}{(if minmax=TRUE) Min-max normalised adjusted_influence within each seed group}
 #' }
-#' 
-#' @export 
+#'
+#' @export
 #'
 #' @examples
 #' \dontrun{
 #' # Basic adjusted influence calculation
 #' ic <- influence_calculator_r(edgelist_simple = edges.table, meta = meta)
-#' influence_scores <- ic$calculate_influence(seed_ids) 
+#' influence_scores <- ic$calculate_influence(seed_ids)
 #' adjusted_scores <- adjust_influence(influence_scores)
 #' head(adjusted_scores)
-#' 
+#'
 #' # Determine const based on your minimum meaningful influence
 #' min_meaningful_influence <- 1e-10  # Set your threshold
 #' custom_const <- -log(min_meaningful_influence)  # const = 23.03
 #' adjusted_scores_custom <- adjust_influence(influence_scores, const = custom_const)
-#' 
+#'
 #' # Group targets by cell type and calculate averaged influence
 #' # This averages influence within each target group
 #' influence_by_celltype <- influence_scores %>%
 #'   dplyr::left_join(meta %>%
 #'                      dplyr::select(root_id, target = cell_type),
-#'                    by = c("id" = "root_id")) %>% 
+#'                    by = c("id" = "root_id")) %>%
 #'   adjust_influence()
 #' head(influence_by_celltype)
-#' 
+#'
 #' # Group targets by brain region
 #' influence_by_region <- influence_scores %>%
 #'   dplyr::left_join(meta %>%
 #'                      dplyr::select(root_id, target = brain_region),
-#'                    by = c("id" = "root_id")) %>% 
+#'                    by = c("id" = "root_id")) %>%
 #'   adjust_influence()
 #' }
 adjust_influence <- function(influence_df,
                              const = 24,
-                             signif = 6){
+                             signif = 6,
+                             minmax = FALSE){
   inf.threshold <- exp(-const)
-  if(!"target"%in%colnames(influence_df)){
+
+  # Track which columns we added (to clean up later)
+  added_target <- FALSE
+  added_influence_original <- FALSE
+  added_seed <- FALSE
+
+  # Ensure required columns exist
+  if (!"target" %in% colnames(influence_df)) {
     influence_df$target <- influence_df$id
-    orig.target = FALSE
-  }else{
-    orig.target = TRUE
+    added_target <- TRUE
   }
-  orig.influence = FALSE
-  if(!"influence_original"%in%colnames(influence_df)){
-    if("Influence_score_(unsigned)"%in%colnames(influence_df) & "Influence_score_(signed)"%in%colnames(influence_df)){
+  if (!"influence_original" %in% colnames(influence_df)) {
+    if ("Influence_score_(unsigned)" %in% colnames(influence_df) &
+        "Influence_score_(signed)" %in% colnames(influence_df)) {
       stop("both Influence_score_(unsigned) and Influence_score_(signed) given, assign one to influence_original")
-    }else if("Influence_score_(unsigned)"%in%colnames(influence_df)){
-      influence_df$influence_original <- influence_df$`Influence_score_(unsigned)`
-    }else if("Influence_score_(signed)"%in%colnames(influence_df)){
-      influence_df$influence_original <- influence_df$`Influence_score_(signed)`
-    }else{
+    } else if ("Influence_score_(unsigned)" %in% colnames(influence_df)) {
+      influence_df$influence_original <- influence_df[["Influence_score_(unsigned)"]]
+    } else if ("Influence_score_(signed)" %in% colnames(influence_df)) {
+      influence_df$influence_original <- influence_df[["Influence_score_(signed)"]]
+    } else {
       stop("Please provide influence_original, Influence_score_(unsigned) or Influence_score_(signed)")
     }
-  }else{
-    orig.influence = TRUE
+    added_influence_original <- TRUE
   }
-  orig.seed = TRUE
-  if(!"seed"%in%colnames(influence_df)){
-    orig.seed = FALSE
+  if (!"seed" %in% colnames(influence_df)) {
     influence_df$seed <- "1"
+    added_seed <- TRUE
   }
-  influence_df <- influence_df %>%
-    dplyr::ungroup() %>%
-    dplyr::group_by(.data$seed) %>%
-    dplyr::mutate(no_sources = sum(.data$is_seed, na.rm = TRUE),
-                  no_sources = ifelse(no_sources==0,1,no_sources)) %>%
-    dplyr::ungroup() %>%
-    dplyr::group_by(.data$target) %>%
-    dplyr::mutate(no_targets = length(unique(.data$id))) %>%
-    dplyr::ungroup() %>%
-    dplyr::group_by(.data$target, .data$seed) %>%
-    dplyr::mutate(influence_summed = sum(.data$influence_original,na.rm = TRUE),
-                  influence_summed = ifelse(.data$influence_summed<inf.threshold,inf.threshold,.data$influence_summed),
-                  adjusted_influence_norm_by_sources_and_targets = .data$influence_summed/(.data$no_sources*.data$no_targets),
-                  adjusted_influence_norm_by_sources_and_targets = ifelse(.data$adjusted_influence_norm_by_sources_and_targets<inf.threshold,inf.threshold,.data$adjusted_influence_norm_by_sources_and_targets),
-                  #no_synapses = sum(.data$pre_count,na.rm=TRUE),
-                  #influence_syn_norm =  sum(.data$influence_per_synapse,na.rm = TRUE)/(.data$no_targets*.data$total_synapses),
-                  #influence_syn_norm = ifelse(.data$influence_syn_norm<inf.threshold,inf.threshold,.data$influence_syn_norm),
-                  #influence_syn_norm = sum(.data$influence_syn_norm,na.rm = TRUE),
-                  #influence_syn_norm_log = log(.data$influence_syn_norm),
-                  adjusted_influence = log(.data$influence_summed),
-                  adjusted_influence_norm_by_sources_and_targets = log(.data$adjusted_influence_norm_by_sources_and_targets),
-                  adjusted_influence_norm_by_targets = log((.data$influence_summed/.data$no_targets))) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(#influence_syn_norm_log = .data$influence_syn_norm_log+const,
-      adjusted_influence = .data$adjusted_influence+const,
-      adjusted_influence_norm_by_sources_and_targets = .data$adjusted_influence_norm_by_sources_and_targets+const,
-      adjusted_influence_norm_by_targets = .data$adjusted_influence_norm_by_targets+const) %>%
-    dplyr::group_by(.data$seed) %>%
-    dplyr::mutate(adjusted_influence = ifelse(is.na(.data$adjusted_influence),0,.data$adjusted_influence),
-                  adjusted_influence_norm_by_targets = ifelse(is.na(.data$adjusted_influence_norm_by_targets),0,.data$adjusted_influence_norm_by_targets),
-                  adjusted_influence_norm_by_sources_and_targets = ifelse(is.na(.data$adjusted_influence_norm_by_sources_and_targets),0,.data$adjusted_influence_norm_by_sources_and_targets)
-                  ) %>%
-    dplyr::ungroup() %>%
-    dplyr::distinct(.data$target, .data$seed, .keep_all = TRUE) %>%
-    dplyr::mutate(adjusted_influence = signif(.data$adjusted_influence,signif),
-                  adjusted_influence_norm_by_targets = signif(.data$adjusted_influence_norm_by_targets,signif),
-                  adjusted_influence_norm_by_sources_and_targets = signif(.data$adjusted_influence_norm_by_sources_and_targets,signif)
-    ) %>%
-    dplyr::distinct(.data$target,
-                    .data$seed, 
-                    .keep_all = TRUE) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(adjusted_influence = signif(.data$adjusted_influence,signif),
-                  adjusted_influence_norm_by_targets = signif(.data$adjusted_influence_norm_by_targets,signif),
-                  # influence_syn_norm = signif(.data$influence_syn_norm,signif),
-                  # influence_syn_norm_log = signif(.data$influence_syn_norm_log,signif),
-                  adjusted_influence_norm_by_sources_and_targets = signif(.data$adjusted_influence_norm_by_sources_and_targets,signif)
-    ) %>%
-    dplyr::select(-"influence_summed",
-                  -"no_targets",
-                  -"no_sources")
-  if(!orig.target){
-    influence_df$target <- NULL
+
+  # Convert to data.table for fast grouped operations
+  dt <- data.table::as.data.table(influence_df)
+
+  # Count sources per seed (number of seed neurons)
+  dt[, no_sources := sum(is_seed, na.rm = TRUE), by = seed]
+  dt[no_sources == 0L, no_sources := 1L]
+
+  # Count unique target neurons per target group
+  dt[, no_targets := data.table::uniqueN(id), by = target]
+
+  # Aggregate: sum influence per (target, seed), deduplicate
+  dt[, influence_summed := sum(influence_original, na.rm = TRUE), by = .(target, seed)]
+  dt <- unique(dt, by = c("target", "seed"), fromLast = FALSE)
+
+  # Floor at threshold
+  dt[influence_summed < inf.threshold, influence_summed := inf.threshold]
+
+  # Compute normalised versions
+  dt[, adjusted_influence_norm_by_sources_and_targets :=
+       pmax(influence_summed / (no_sources[1] * no_targets[1]), inf.threshold),
+     by = .(target, seed)]
+
+  # Log transform + constant
+  dt[, `:=`(
+    adjusted_influence = log(influence_summed) + const,
+    adjusted_influence_norm_by_targets = log(influence_summed / no_targets) + const,
+    adjusted_influence_norm_by_sources_and_targets =
+      log(adjusted_influence_norm_by_sources_and_targets) + const
+  )]
+
+  # Replace NA with 0
+  for (col in c("adjusted_influence", "adjusted_influence_norm_by_targets",
+                "adjusted_influence_norm_by_sources_and_targets")) {
+    data.table::set(dt, which(is.na(dt[[col]])), col, 0)
   }
-  if(!orig.influence){
-    influence_df$influence_original <- NULL
+
+  # Optional min-max normalisation
+  if (minmax) {
+    dt[, adjusted_influence_minmax_by_target := {
+      mn <- min(adjusted_influence, na.rm = TRUE)
+      mx <- max(adjusted_influence, na.rm = TRUE)
+      if (mx == mn) rep(0, .N) else (adjusted_influence - mn) / (mx - mn)
+    }, by = target]
+
+    dt[, adjusted_influence_minmax_by_seed := {
+      mn <- min(adjusted_influence, na.rm = TRUE)
+      mx <- max(adjusted_influence, na.rm = TRUE)
+      if (mx == mn) rep(0, .N) else (adjusted_influence - mn) / (mx - mn)
+    }, by = seed]
   }
-  if(!orig.seed){
-    influence_df$seed <- NULL
+
+  # Round to significant figures
+  for (col in c("adjusted_influence", "adjusted_influence_norm_by_targets",
+                "adjusted_influence_norm_by_sources_and_targets")) {
+    data.table::set(dt, j = col, value = signif(dt[[col]], signif))
   }
-  influence_df
+  if (minmax) {
+    for (col in c("adjusted_influence_minmax_by_target", "adjusted_influence_minmax_by_seed")) {
+      data.table::set(dt, j = col, value = signif(dt[[col]], signif))
+    }
+  }
+
+  # Clean up intermediate columns
+  dt[, c("influence_summed", "no_targets", "no_sources") := NULL]
+
+  # Remove columns we added if they weren't in the original
+  if (added_target) dt[, target := NULL]
+  if (added_influence_original) dt[, influence_original := NULL]
+  if (added_seed) dt[, seed := NULL]
+
+  # Convert back to tibble for backwards compatibility
+  tibble::as_tibble(dt)
 }

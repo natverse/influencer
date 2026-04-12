@@ -19,7 +19,7 @@ URL: https://natverse.github.io/influencer, https://github.com/natverse/influenc
 BugReports: https://github.com/natverse/influencer/issues
 Depends: 
     R (>= 3.5.0)
-Imports: 
+Imports:
     Matrix,
     RSpectra,
     reticulate,
@@ -30,7 +30,8 @@ Imports:
     DBI,
     R6,
     digest,
-    rlang
+    rlang,
+    data.table
 Suggests: 
     testthat (>= 3.0.0),
     rmarkdown,
