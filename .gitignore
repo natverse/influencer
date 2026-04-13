@@ -203,3 +203,5 @@ logs/
 
 # Temporary files
 continue_vignette.R
+CLAUDE.md
+/.claude
