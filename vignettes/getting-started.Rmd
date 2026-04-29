@@ -48,8 +48,11 @@ edges <- data.frame(
 )
 
 meta <- data.frame(
-  root_id = c("A", "B", "C", "D", "E"),
-  cell_type = c("input", "interneuron", "interneuron", "output", "output")
+  root_id   = c("A", "B", "C", "D", "E"),
+  cell_type = c("input", "interneuron", "interneuron", "output", "output"),
+  # `top_nt` is required by `signed = TRUE` (and by `excluded_nts`); we set
+  # it here so the signed-mode example below can run.
+  top_nt    = c("acetylcholine", "gaba", "acetylcholine", "glutamate", "acetylcholine")
 )
 
 print("Edge list:")
@@ -137,11 +140,16 @@ The influence scores represent how much each neuron is affected by the seed neur
 The package supports both signed and unsigned connectivity:
 
 ```{r signed_network}
-# Create calculator with signed connectivity (for inhibitory/excitatory neurons)
+# Create calculator with signed connectivity. The library has no per-organism
+# default for which transmitters are inhibitory; you must supply
+# `inhibitory_nts` explicitly when `signed = TRUE`. (`excluded_nts` is also
+# accepted, for transmitter classes that gate both excitatory and inhibitory
+# receptors and so cannot be assigned a single sign safely.)
 ic_signed <- influence_calculator_r(
-  edgelist_simple = edges, 
-  meta = meta, 
-  signed = TRUE  # This would use inhibitory neurons if marked in metadata
+  edgelist_simple = edges,
+  meta = meta,
+  signed = TRUE,
+  inhibitory_nts = c("glutamate", "gaba", "serotonin", "octopamine")
 )
 
 # Results will be similar for this example since we don't have inhibitory neurons marked

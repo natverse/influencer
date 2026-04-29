@@ -12,17 +12,22 @@ influence_calculator(
   method = "r",
   signed = FALSE,
   count_thresh = 3,
-  const = 24
+  const = 24,
+  inhibitory_nts = NULL,
+  excluded_nts = NULL,
+  lambda_max = 0.99
 )
 }
 \arguments{
-\item{edgelist_simple}{Data frame with edge list containing columns 'pre', 'post',
-'count', and 'norm'. Required when sqlite = FALSE.}
+\item{edgelist_simple}{Data frame with edge list. See \code{\link[=influence_calculator_r]{influence_calculator_r()}}
+for column requirements.}
 
-\item{meta}{Data frame with metadata containing at least 'root_id' column.
-Required when sqlite = FALSE.}
+\item{meta}{Data frame with metadata. See \code{\link[=influence_calculator_r]{influence_calculator_r()}} for column
+requirements.}
 
-\item{filename}{Character. Path to SQLite database file. Used when sqlite = TRUE.}
+\item{filename}{Character. Path to a connectome data file. SQLite is the legacy
+format; the Python backend additionally supports CSV / Parquet / Feather
+detected by extension.}
 
 \item{sqlite}{Logical. Whether to load data from SQLite database (default: FALSE).}
 
@@ -32,11 +37,17 @@ Required when sqlite = FALSE.}
 
 \item{count_thresh}{Numeric. Minimum threshold count (default: 3).}
 
-\item{const}{Constant value added to log(influence) to ensure non-negative adjusted
-influence scores. Should be set to -log(minimum_accepted_influence) where
-minimum_accepted_influence is the smallest influence value considered meaningful.
-Default 24 corresponds to minimum_accepted_influence = exp(-24) ≈ 3.78e-11.
-Only used for R implementation.}
+\item{const}{Numeric. Adjustment constant for the log transform applied by the R
+backend's \code{calculate_influence()}. See \code{\link[=influence_calculator_r]{influence_calculator_r()}} for details.}
+
+\item{inhibitory_nts}{Character vector of \code{top_nt} values whose pre-neurons get
+negated weights when \code{signed = TRUE}. Required for signed mode.}
+
+\item{excluded_nts}{Character vector of \code{top_nt} values whose pre-neurons
+contribute nothing to W. Independent of \code{signed}.}
+
+\item{lambda_max}{Numeric in \verb{(0, 1)}. Target spectral radius of the rescaled
+matrix; default \code{0.99}. See \code{\link[=influence_calculator_r]{influence_calculator_r()}}.}
 }
 \value{
 InfluenceCalculator object (either Python or R implementation)
@@ -53,7 +64,8 @@ ic.df <- influence_calculator(edgelist_simple = my_edges, meta = my_meta)
 # Use R implementation with SQLite database
 ic.sqlite <- influence_calculator(filename = "connectome.sqlite", sqlite = TRUE)
 
-# Use Python implementation (requires SQLite database)
-ic.py <- influence_calculator(filename = "connectome.sqlite", sqlite = TRUE, method = "python")
+# Use Python implementation directly with data frames (no temp SQLite needed)
+ic.py <- influence_calculator(edgelist_simple = my_edges, meta = my_meta,
+                               method = "python")
 }
 }

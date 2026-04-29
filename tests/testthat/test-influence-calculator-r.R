@@ -107,21 +107,86 @@ test_that("R implementation calculates influence scores with SQLite", {
 })
 
 test_that("R implementation handles signed connectivity", {
-  db_path <- system.file("tests", "testthat", "toy_network_example.sqlite", 
+  db_path <- system.file("tests", "testthat", "toy_network_example.sqlite",
                          package = "influencer")
   if (!file.exists(db_path)) {
     db_path <- "toy_network_example.sqlite"
   }
-  
+
   skip_if_not(file.exists(db_path), "Test database not found")
-  
-  # Test signed version
-  ic_signed <- influence_calculator_r(filename = db_path, sqlite = TRUE, signed = TRUE)
+
+  # signed=TRUE now requires inhibitory_nts (no library default)
+  ic_signed <- influence_calculator_r(
+    filename = db_path, sqlite = TRUE,
+    signed = TRUE,
+    inhibitory_nts = c("glutamate", "gaba", "serotonin", "octopamine"))
   expect_true(ic_signed$W_signed)
-  
-  # Test unsigned version
+
+  # Test unsigned version (no inhibitory_nts required)
   ic_unsigned <- influence_calculator_r(filename = db_path, sqlite = TRUE, signed = FALSE)
   expect_false(ic_unsigned$W_signed)
+
+  # signed=TRUE without inhibitory_nts must error with an actionable message
+  expect_error(
+    influence_calculator_r(filename = db_path, sqlite = TRUE, signed = TRUE),
+    "inhibitory_nts"
+  )
+})
+
+test_that("R implementation accepts lambda_max and rejects out-of-range values", {
+  edgelist_simple <- data.frame(
+    pre   = c(1, 2, 3, 1),
+    post  = c(2, 3, 1, 3),
+    count = c(10, 8, 5, 4),
+    norm  = c(0.5, 0.4, 0.3, 0.2)
+  )
+  meta <- data.frame(root_id = c(1, 2, 3))
+
+  ic_default <- influence_calculator_r(edgelist_simple = edgelist_simple, meta = meta)
+  expect_equal(ic_default$lambda_max, 0.99)
+
+  ic_low <- influence_calculator_r(edgelist_simple = edgelist_simple, meta = meta,
+                                   lambda_max = 0.5)
+  expect_equal(ic_low$lambda_max, 0.5)
+
+  expect_error(
+    influence_calculator_r(edgelist_simple = edgelist_simple, meta = meta,
+                           lambda_max = 1),
+    "lambda_max"
+  )
+  expect_error(
+    influence_calculator_r(edgelist_simple = edgelist_simple, meta = meta,
+                           lambda_max = 0),
+    "lambda_max"
+  )
+})
+
+test_that("R implementation excludes NTs and applies sign-preserving signed mode", {
+  # Three-neuron graph with one GABAergic pre-neuron and one excluded modulator
+  edgelist_simple <- data.frame(
+    pre   = c(1, 2, 3),
+    post  = c(2, 3, 1),
+    count = c(10, 8, 5),
+    norm  = c(0.5, 0.4, 0.3)
+  )
+  meta <- data.frame(
+    root_id = c(1, 2, 3),
+    top_nt  = c("acetylcholine", "gaba", "dopamine")
+  )
+
+  # excluded_nts drops outgoing edges from the dopaminergic pre-neuron (id=3).
+  ic_excl <- influence_calculator_r(edgelist_simple = edgelist_simple, meta = meta,
+                                    excluded_nts = "dopamine")
+  # Column 3 of W (outgoing from neuron 3) should be empty after exclusion.
+  expect_equal(sum(abs(ic_excl$W[, 3])), 0)
+
+  # Signed mode negates GABAergic pre-neurons (id=2). Column 2 of W should be
+  # negative-only after the negation.
+  ic_signed <- influence_calculator_r(edgelist_simple = edgelist_simple, meta = meta,
+                                      signed = TRUE,
+                                      inhibitory_nts = "gaba")
+  col2 <- ic_signed$W[, 2]
+  expect_true(all(col2[col2 != 0] < 0))
 })
 
 test_that("R implementation handles different thresholds", {
@@ -166,8 +231,16 @@ test_that("R implementation handles large integer IDs correctly", {
   expect_s3_class(ic.df, "InfluenceCalculatorR")
   expect_equal(ic.df$n_neurons, 3)
   
-  # Test calculation with large ID as seed
-  result <- ic.df$calculate_influence(seed_ids = large_ids[1])
+  # Test calculation with large ID as seed.  This toy graph is strictly lower
+  # triangular, so all eigenvalues of W are 0 and `normalise_W` emits an
+  # informational warning that lambda_max can't be applied; we assert that
+  # warning fires but suppress it for the assignment so `result` is the data
+  # frame, not the warning condition.
+  expect_warning(
+    suppressMessages(ic.df$calculate_influence(seed_ids = large_ids[1])),
+    "noise floor"
+  )
+  result <- suppressWarnings(ic.df$calculate_influence(seed_ids = large_ids[1]))
   expect_s3_class(result, "data.frame")
   expect_equal(nrow(result), 3)
   

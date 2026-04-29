@@ -45,7 +45,7 @@ install_python_influence_calculator()
 
 ![source_to_targets](https://github.com/natverse/influencer/blob/main/inst/images/source_to_targets.jpg?raw=true)
 
-This package computes the influence scores of a neuron or a group of neurons, as specified through the seed vector **s**, on all downstream neurons in the connectome based on a linear dynamical model of neural signal propagation:
+A constant input is held at one or more **source** (seed) neurons; the linear-cascade model below propagates that input through the connectome to a steady state, and each downstream **target** neuron's steady-state activity is its **influence score** — a single number summarising how strongly the source drives that target through any combination of direct and indirect paths. Formally, the dynamics are the linear ODE:
 
 $$
 \begin{aligned}
@@ -54,17 +54,23 @@ $$
 \end{aligned}
 $$
 
-where **r** is the vector of neural activity, **W** is the connectivity matrix, and **s** is the simulated neural stimulation (applied to the seed neurons and remains constant throughout the simulation). The connectivity matrix is constructed by mapping the neuron IDs to matrix indices and arranging them such that the columns correspond to presynaptic neurons and rows correspond to postsynaptic neurons.
+![linear_dynamical_model](https://github.com/natverse/influencer/blob/main/inst/images/linear_dynamical_model.png?raw=true)
 
-To ensure stable neural dynamics, we rescale **W** such that:
+where **r** is the vector of neural activity, **W** is the connectivity matrix, and **s** is the simulated neural stimulation (applied to the seed neurons and remains constant throughout the simulation). The connectivity matrix is constructed by mapping the neuron IDs to matrix indices and arranging them such that the columns correspond to presynaptic neurons and rows correspond to postsynaptic neurons. Each entry is the **input-normalised** synaptic weight — the synapse count from a given presynaptic partner divided by the total number of synapses received by that postsynaptic neuron — so an entry represents the fraction of a postsynaptic neuron's drive that comes from each upstream partner. This normalisation makes per-edge weights comparable across neurons that vary widely in size and total input count.
+
+To ensure stable neural dynamics, we rescale **W** such that its largest real eigenvalue equals a tuneable target λ ∈ (0, 1):
 
 $$
 \begin{equation}
-    \tilde{\boldsymbol{W}} = \frac{0.99}{\lambda_{max}} \boldsymbol{W}
+    \tilde{\boldsymbol{W}} = \frac{\lambda}{\lambda_{\max}(\boldsymbol{W})} \boldsymbol{W}
 \end{equation}
 $$
 
-where λ_max is the largest real eigenvalue of **W**. The steady-state solution can thus be written as:
+where λ_max(**W**) is the largest real eigenvalue of **W**, and λ is the desired largest real eigenvalue of **W̃** — exposed as the constructor argument `lambda_max` (default `0.99`). It sets the gain along the leading recurrent mode of (**I** − **W̃**)⁻¹ to 1/(1 − λ) — so `100×` at the default, `2×` at `lambda_max = 0.5`.
+
+Intuitively, **`lambda_max` is a reverb knob**. Near 1, a signal injected at the seed echoes through the network many times before fading, and the dominant recurrent loop drowns out finer differences between targets — every target column ends up with nearly the same shape. The default `0.99` (seems to be appropriate for the whole-CNS *Drosophila* BANC connectome and larger graphs, where the leading-mode amplification surfaces real weak distal influence). Near 0.5 the signal mostly traverses short paths, so per-target seed specificity is preserved at the cost of attenuating long polysynaptic effects (e.g. more appropriate for the *C. elegans* connectome, where the graph is small enough that the leading mode otherwise washes the heatmap out). Lower `lambda_max` when seed→target heatmaps look uniform across targets.
+
+The steady-state solution is then:
 
 $$
 \begin{equation}
@@ -72,28 +78,55 @@ $$
 \end{equation}
 $$
 
-The influence of any seed is defined as the magnitude of neural activity at steady state, **r**_∞.
+![neural_network_dynamics](https://github.com/natverse/influencer/blob/main/inst/images/neural_network_dynamics.gif?raw=true)
 
-This is a linear system, and so the results should be additive between seed runs. The non-linear effects of convergent information flow are not considered.
+The animation above shows the same dynamics on a 28-node toy graph: a constant input applied to one seed propagates through the connections, and each neuron's activity rises until the system reaches its steady state **r**_∞. **The influence of any seed is defined as the magnitude of neural activity at steady state**, so each curve's plateau height is the influence score for that target.
 
-Typically, we use ‘adjusted influence’ which zeros out 'junk scores', takes the natural log of the influence score and adjusts it to be above zero for ease of analysis. This can be expressed as:
+This is a linear system, and so the results are additive between seed runs. Non-linear effects of convergent information flow are not considered.
 
-```
-adjusted_influence = natural_log(raw_influence) + c
-```
+### Adjusted influence
 
-Where `c` is the score that any 'junk nodes' receive, i.e. nodes that are almost disconnected from the graph, in a chain of wekaly connected such nodes. For the BANC connectome, we used `c=24`. 
-
-When you run a seed, you can have multiple neurons in it. When calculating across multiple seeds, you can just do:
+Raw influence scores span many orders of magnitude — at the default `lambda_max = 0.99` the leading recurrent mode is amplified by `1/(1 - 0.99) = 100×`, and weakly connected nodes pick up vanishingly small values that crowd the lower tail. `adjust_influence()` makes the output legible by taking the natural log and shifting it so the smallest meaningful score sits at zero:
 
 ```
-adjusted_influence = natural_log( sum(raw_influence_seed1,  raw_influence_seed2, ... ) ) + c
+adjusted_influence = sign(x) * (log(max(|x|, exp(-const))) + const)
 ```
 
-And when averaging over multiple target neurons, one can do:
+`const` defines the floor: any score whose magnitude is below `exp(-const)` is clipped to zero (a "junk-node" cutoff for nodes that are nearly disconnected from the seed). The default `const = 24` is calibrated for the *Drosophila* BANC connectome (~130k neurons, minimum meaningful score ~3.78e-11). For smaller networks compute it from your data:
 
+```r
+raw_col <- grep("Influence_score", names(results), value = TRUE)[1]
+const <- -log(min(abs(results[[raw_col]])[abs(results[[raw_col]]) > 0]))
+adjusted <- adjust_influence(results, const = const)
 ```
-adjusted_influence = natural_log( sum(raw_influence_to_target1,  raw_influence_to_target2, ... ) / no_target_neurons ) + c
+
+In **signed** mode the formula preserves the sign through the log transform: a target with net-inhibitory drive returns a negative `adjusted_influence`, with magnitudes below the floor clipped to zero in either sign.
+
+When you run a seed group with multiple neurons or aggregate over multiple targets, `adjust_influence()` sums the raw influence within each `(target, seed)` group before the log transform and returns three columns:
+
+| column | formula | when to use |
+|---|---|---|
+| `adjusted_influence` | `log(Σ raw) + const` | comparing pairs |
+| `adjusted_influence_norm_by_targets` | `log(Σ raw / n_targets) + const` | comparing seeds with very different downstream fan-out |
+| `adjusted_influence_norm_by_sources_and_targets` | `log(Σ raw / (n_sources · n_targets)) + const` | comparing across seed/target groups of different sizes |
+
+### Neurotransmitter assignment
+
+The library has **no per-organism default** for which transmitters are inhibitory. When `signed = TRUE`, you supply the sets explicitly:
+
+- **`inhibitory_nts`** — `top_nt` values whose pre-neurons get negated weights in the connectivity matrix.
+- **`excluded_nts`** — `top_nt` values whose pre-neurons contribute *nothing* to the matrix (their outgoing edges are dropped). Independent of `signed`. Use this for transmitter classes whose sign at a given target depends on the receptor mix and so cannot be assigned a single sign safely.
+
+Two reasonable starting points (conventions, **not** library defaults — rebalance for your dataset):
+
+```r
+# Drosophila — historical BANC convention
+drosophila_inhibitory_nts <- c("glutamate", "gaba", "serotonin", "octopamine")
+drosophila_excluded_nts   <- character(0)
+
+# C. elegans — only ACh and GABA have unambiguous signs
+celegans_inhibitory_nts   <- "gaba"
+celegans_excluded_nts     <- c("glutamate", "dopamine", "serotonin", "octopamine")
 ```
 
 ## Quick Start
@@ -224,13 +257,24 @@ The Python wrapper uses the r-reticulate environment exclusively:
 library(influencer)
 
 # Install Python dependencies (into r-reticulate environment)
-install_python_influence_calculator() 
+install_python_influence_calculator()
 
-# Create InfluenceCalculator object
-ic.py <- influence_calculator_py('connectome_dataset.sqlite')
+# SQLite (legacy)
+ic.py <- influence_calculator_py("connectome_dataset.sqlite")
 
-# Or use with data frames (creates temporary SQLite database)
-ic.py <- influence_calculator_py(edgelist_simple = dummy_edges, meta = dummy_meta)
+# Data frames — handed straight to the Python from_dataframes constructor;
+# no temporary SQLite database is written any more (this changed in v0.2.0
+# of the upstream Python package, which gained native DataFrame / CSV /
+# Parquet / Feather constructors).
+ic.py <- influence_calculator_py(edgelist_simple = dummy_edges,
+                                 meta = dummy_meta,
+                                 signed = TRUE,
+                                 inhibitory_nts = drosophila_inhibitory_nts,
+                                 lambda_max = 0.99)
+
+# Feather edge list directly from disk (e.g. the BANC GCS bucket — see below)
+ic.py <- influence_calculator_py("banc_888_edgelist_simple_v2.feather",
+                                 meta = banc_meta)
 ```
 
 **Python Environment**: All Python functionality uses the r-reticulate conda environment, eliminating environment management complexity.
@@ -361,6 +405,26 @@ Both implementations produce highly correlated results with the **R implementati
 ### About the BANC Connectome
 
 The **BANC** (Brain And Nerve Cord) connectome represents the first complete connectome of both brain and ventral nerve cord in a limbed animal - *Drosophila melanogaster*. This landmark dataset comprises approximately 160,000 neurons across the entire central nervous system, revealing how brain and nerve cord work together as an integrated system. The BANC connectome is particularly important for understanding distributed motor control, sensorimotor integration, and the complete neural pathways underlying behavior.
+
+#### Direct download (Feather)
+
+The full BANC dataset is at <https://doi.org/10.7910/DVN/8TFGGB>. If you only need the edge list, a Feather copy is hosted on the lab's public Google Cloud Storage bucket and can be loaded straight into either backend:
+
+```
+gs://lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888/banc_888_edgelist_simple_v2.feather
+```
+
+(equivalent HTTPS: <https://storage.googleapis.com/lee-lab_brain-and-nerve-cord-fly-connectome/compiled_data/banc_888/banc_888_edgelist_simple_v2.feather>).
+
+```r
+# R-native: pass the loaded data frame (use arrow::read_feather to load)
+banc_edges <- arrow::read_feather("banc_888_edgelist_simple_v2.feather")
+ic <- influence_calculator_r(edgelist_simple = banc_edges, meta = banc.meta)
+
+# Python wrapper: hand the file path directly (Python's from_feather is invoked)
+ic.py <- influence_calculator_py("banc_888_edgelist_simple_v2.feather",
+                                 meta = banc.meta)
+```
 
 Here's an example using the BANC connectome to analyse descending neuron influence. Not the first time we calciulate influence with a new edgelist it is very slow, the expensive part isn't the influence calculation itself, but the initial eigenvalue computation and matrix. By caching the result, we can speed things up a lot.
 
@@ -695,18 +759,43 @@ Please see the [contribution guidelines](https://github.com/DrugowitschLab/Conne
 
 If you use this package in your research, please cite **all three** of the following:
 
-1. **The original ConnectomeInfluenceCalculator software:**
-   Ajabi, Zaki, Alexander S. Bates, and Jan Drugowitsch. 2025. Connectome Influence Calculator. Zenodo. https://doi.org/10.5281/ZENODO.15999930.
+1. **The original ConnectomeInfluenceCalculator (Python) software:**
+   Ajabi, Z., Bates, A. S., & Drugowitsch, J. (2025). *Connectome Influence Calculator*. Zenodo. <https://doi.org/10.5281/zenodo.15999930>. Source: <https://github.com/DrugowitschLab/ConnectomeInfluenceCalculator>.
+
+   ```bibtex
+   @software{ajabi2025connectome,
+     title     = {Connectome Influence Calculator},
+     author    = {Ajabi, Zaki and Bates, Alexander Shakeel and Drugowitsch, Jan},
+     year      = {2025},
+     publisher = {Zenodo},
+     doi       = {10.5281/zenodo.15999930},
+     url       = {https://github.com/DrugowitschLab/ConnectomeInfluenceCalculator}
+   }
+   ```
 
 2. **The scientific method and algorithm:**
-   Bates, Alexander Shakeel, Jasper S. Phelps, Minsu Kim, Helen H. Yang, Arie Matsliah, Zaki Ajabi, Eric Perlman, et al. 2025. "Distributed Control Circuits across a Brain-and-Cord Connectome." bioRxiv. https://doi.org/10.1101/2025.07.31.667571.
+   Bates, A. S., Phelps, J. S., Kim, M., Yang, H. H., *et al.* (2025). *Distributed Control Circuits across a Brain-and-Cord Connectome.* bioRxiv. doi:[10.1101/2025.07.31.667571](https://doi.org/10.1101/2025.07.31.667571). PMID:[40766407](https://pubmed.ncbi.nlm.nih.gov/40766407/).
+
+   ```bibtex
+   @article{bates2025distributed,
+     title   = {Distributed control circuits across a brain-and-cord connectome},
+     author  = {Bates, Alexander Shakeel and Phelps, J. S. and Kim, M.
+                and Yang, H. H. and Matsliah, A. and others
+                and {BANC-FlyWire Consortium}},
+     journal = {bioRxiv},
+     year    = {2025},
+     doi     = {10.1101/2025.07.31.667571},
+     url     = {https://doi.org/10.1101/2025.07.31.667571},
+     note    = {Preprint. PMID: 40766407; PMCID: PMC12324551}
+   }
+   ```
 
 3. **This R package:**
    ```r
    citation("influencer")
    ```
 
-   Bates, A. (2025). influencer: R Tools for Connectome Influence Analysis. R package version 0.1.0. https://github.com/natverse/influencer
+   Bates, A. (2025). *influencer: R Tools for Connectome Influence Analysis.* R package version 0.1.0. <https://github.com/natverse/influencer>
 
 ## Acknowledgements
 

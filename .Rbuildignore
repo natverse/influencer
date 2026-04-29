@@ -21,3 +21,5 @@
 ^.*~$
 ^\.Rhistory$
 ^\.\.Rcheck$
+^\.claude$
+^CLAUDE\.md$

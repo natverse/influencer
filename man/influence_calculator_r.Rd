@@ -12,21 +12,27 @@ influence_calculator_r(
   signed = FALSE,
   count_thresh = 3,
   const = 24,
-  neg_neurotransmitters = c("glutamate", "gaba", "serotonin", "octopamine")
+  inhibitory_nts = NULL,
+  excluded_nts = NULL,
+  lambda_max = 0.99,
+  neg_neurotransmitters = NULL
 )
 }
 \arguments{
-\item{edgelist_simple}{Data frame with edge list containing columns 'pre', 'post',
-'count', and 'norm'. Required when sqlite = FALSE.}
+\item{edgelist_simple}{Data frame with edge list containing columns 'pre',
+'post', 'count', and optional 'norm'. If 'norm' is absent it is computed
+from 'count' as \verb{count / sum(count) per post}. Required when sqlite = FALSE.}
 
 \item{meta}{Data frame with metadata containing at least 'root_id' column.
+Must also contain 'top_nt' when \code{signed = TRUE} or \code{excluded_nts} is given.
 Required when sqlite = FALSE.}
 
 \item{filename}{Character. Path to SQLite database file. Used when sqlite = TRUE.}
 
 \item{sqlite}{Logical. Whether to load data from SQLite database (default: FALSE).}
 
-\item{signed}{Logical. Whether to use signed connectivity matrix (default: FALSE).}
+\item{signed}{Logical. Whether to use signed connectivity matrix (default: FALSE).
+When \code{TRUE}, \code{inhibitory_nts} must be supplied.}
 
 \item{count_thresh}{Numeric. Minimum threshold count for postsynaptic connections
 (default: 3).}
@@ -36,8 +42,30 @@ influence scores. Should be set to -log(minimum_accepted_influence) where
 minimum_accepted_influence is the smallest influence value considered meaningful.
 Default 24 corresponds to minimum_accepted_influence = exp(-24) ≈ 3.78e-11.}
 
-\item{neg_neurotransmitters}{Character Neurotransmitters that receive negative signs if requested. Must be present in \code{top_nt}
-field of \code{meta}.}
+\item{inhibitory_nts}{Character vector of \code{top_nt} values whose pre-neurons should
+receive negative weights when \code{signed = TRUE}. The library has no per-organism
+default; you must supply this set explicitly when \code{signed = TRUE}. Common
+conventions: \code{c("glutamate", "gaba", "serotonin", "octopamine")} for \emph{Drosophila},
+\code{"gaba"} for \emph{C. elegans} (only ACh and GABA have unambiguous signs there).}
+
+\item{excluded_nts}{Character vector of \code{top_nt} values whose pre-neurons should
+contribute \emph{nothing} to W: their outgoing edges are dropped entirely. Independent
+of \code{signed}. Use this for transmitter classes whose sign at a given target depends
+on the receptor mix (e.g. dopamine, serotonin in \emph{C. elegans}) and so cannot be
+assigned a single sign safely.}
+
+\item{lambda_max}{Numeric in \verb{(0, 1)}. Target spectral radius of the rescaled
+connectivity matrix W̃; controls how much the leading recurrent mode of
+\verb{(I − W̃)^-1} is amplified (gain = \code{1/(1 - lambda_max)}). The default \code{0.99}
+gives a \verb{100×} gain — appropriate for whole-CNS \emph{Drosophila} (BANC-scale) graphs
+where you want sensitivity to weak distal influence. Lower values (e.g. \code{0.5},
+\verb{2×} gain) damp the leading mode and expose per-target seed specificity at the
+cost of attenuating long polysynaptic effects — more appropriate for smaller
+graphs like \emph{C. elegans}. Treat it as a "reverb knob": near 1 a signal echoes
+through long indirect paths; near 0.5 it mostly traverses short paths.}
+
+\item{neg_neurotransmitters}{\strong{Deprecated} (renamed to \code{inhibitory_nts}). Still
+accepted for backwards compatibility but emits a warning.}
 }
 \value{
 InfluenceCalculatorR object (R6 class)
@@ -48,13 +76,25 @@ This provides a fast, pure R alternative to the Python implementation.
 }
 \examples{
 \dontrun{
-# Using data frames (recommended approach)
-ic.r <- influence_calculator_r(edgelist_simple = my_edges, meta = my_meta)
+# C. elegans convention (small graph; lower lambda_max)
+ic <- influence_calculator_r(
+  edgelist_simple = my_edges,
+  meta = my_meta,
+  signed = TRUE,
+  inhibitory_nts = "gaba",
+  excluded_nts = c("glutamate", "dopamine", "serotonin", "octopamine"),
+  lambda_max = 0.5
+)
 
-# Using SQLite database (legacy method)
-ic.sqlite <- influence_calculator_r(filename = "connectome.sqlite", sqlite = TRUE)
+# Drosophila / BANC convention (whole-CNS; default lambda_max)
+ic <- influence_calculator_r(
+  edgelist_simple = banc_edges,
+  meta = banc_meta,
+  signed = TRUE,
+  inhibitory_nts = c("glutamate", "gaba", "serotonin", "octopamine")
+)
 
-# Calculate influence with specific seed neurons
-results <- ic.r$calculate_influence(seed_ids = c(123, 456))
+# Calculate influence for specific seed neurons
+results <- ic$calculate_influence(seed_ids = c(123, 456))
 }
 }

@@ -8,32 +8,33 @@ test_that("Python wrapper functions are available", {
 })
 
 test_that("Python wrapper handles missing environment gracefully", {
-  # Test that function gives informative error when Python environment isn't available
+  # Function should error with an informative message in any of these scenarios:
+  # missing conda, missing/old InfluenceCalculator, missing file, etc. We accept
+  # any of the known failure-mode strings.
   expect_error(
     influence_calculator_py("nonexistent.sqlite"),
-    "Failed to activate r-reticulate environment|Unable to locate conda environment|ConnectomeInfluenceCalculator not found|Architecture mismatch detected|Failed to import ConnectomeInfluenceCalculator|Failed to create InfluenceCalculator|no such table|Unable to find conda binary|Conda not found|Is Anaconda installed|pandas.errors.DatabaseError|Execution failed on sql"
+    "Failed to activate r-reticulate environment|Unable to locate conda environment|ConnectomeInfluenceCalculator not found|Architecture mismatch detected|Failed to import ConnectomeInfluenceCalculator|Failed to create InfluenceCalculator|no such table|Unable to find conda binary|Conda not found|Is Anaconda installed|pandas.errors.DatabaseError|Execution failed on sql|unused argument"
   )
 })
 
-# Skip Python tests if environment is not available
+# Skip Python tests when the connectome lib is unavailable OR doesn't expose the
+# v0.2.0 surface that this branch of `influencer` now targets (`from_dataframes`,
+# `inhibitory_nts`, `lambda_max`). Older installed versions of the Python lib
+# will load fine but reject the new kwargs at call time.
 skip_if_no_python <- function() {
-  python_available <- tryCatch({
-    # Use r-reticulate environment
+  python_ok <- tryCatch({
     reticulate::use_condaenv("r-reticulate", required = TRUE)
     ic_module <- reticulate::import("InfluenceCalculator")
-    TRUE
-  }, error = function(e) {
-    # Check if it's an architecture mismatch
-    if (grepl("incompatible architecture", e$message) || 
-        grepl("mach-o file.*have 'arm64'.*need 'x86_64'", e$message)) {
-      # This is expected on Apple Silicon with x86_64 R
-      FALSE
-    } else {
-      FALSE
-    }
-  })
-  
-  skip_if_not(python_available, "Python InfluenceCalculator not available (may be due to architecture mismatch)")
+    # v0.2.0 marker: the from_dataframes classmethod is exposed on the class
+    has_from_df <- tryCatch(
+      reticulate::py_has_attr(ic_module$InfluenceCalculator, "from_dataframes"),
+      error = function(e) FALSE
+    )
+    isTRUE(has_from_df)
+  }, error = function(e) FALSE)
+
+  skip_if_not(python_ok,
+              "Python InfluenceCalculator v0.2.0 (from_dataframes API) not available")
 }
 
 test_that("Python implementation works when available", {
