@@ -1,7 +1,7 @@
 Type: Package
 Package: influencer
 Title: R Tools for Connectome Influence Analysis
-Version: 0.1.0
+Version: 1.0.0
 Date: 2025-08-05
 Author: Alexander Bates [aut, cre] (<https://orcid.org/0000-0002-1195-0445>)
 Maintainer: Alexander Bates <alexander.shakeel.bates@gmail.com>
