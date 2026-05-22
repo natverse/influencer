@@ -5,19 +5,55 @@
   "upload_type": "software",
   "access_right": "open",
   "creators": [
-    {"name": "Bates, Alexander Shakeel", "orcid": "0000-0002-1195-0445", "affiliation": "Harvard Medical School"}
+    {
+      "name": "Bates, Alexander Shakeel",
+      "orcid": "0000-0002-1195-0445",
+      "affiliation": "Harvard Medical School"
+    },
+    {
+      "name": "Ajabi, Zaki",
+      "orcid": "0000-0002-4411-4005",
+      "affiliation": "Harvard Medical School"
+    },
+    {
+      "name": "Drugowitsch, Jan",
+      "orcid": "0000-0002-7846-0408",
+      "affiliation": "Harvard Medical School"
+    }
   ],
-  "contributors": [
-    {"type": "ContactPerson", "name": "Ajabi, Zaki", "orcid": "0000-0002-4411-4005", "affiliation": "Harvard Medical School"},
-    {"type": "ContactPerson", "name": "Drugowitsch, Jan", "orcid": "0000-0002-7846-0408", "affiliation": "Harvard Medical School"}
+  "grants": [
+    {
+      "id": "10.13039/100010269::222782/Z/21/Z"
+    },
+    {
+      "id": "10.13039/100000002::U19NS118246"
+    }
   ],
   "keywords": [
-    "connectomics", "Drosophila", "influence", "PETSc", "SLEPc",
-    "natverse", "BANC", "graph analysis"
+    "connectomics",
+    "Drosophila",
+    "influence",
+    "PETSc",
+    "SLEPc",
+    "natverse",
+    "BANC",
+    "graph analysis"
   ],
   "related_identifiers": [
-    {"relation": "isSupplementTo", "identifier": "10.1101/2025.07.31.667571", "resource_type": "publication-preprint"},
-    {"relation": "isSourceOf", "identifier": "10.7910/DVN/7WTH1N", "resource_type": "dataset"},
-    {"relation": "isDerivedFrom", "identifier": "10.5281/zenodo.15999930", "resource_type": "software"}
+    {
+      "relation": "isSupplementTo",
+      "identifier": "10.1101/2025.07.31.667571",
+      "resource_type": "publication-preprint"
+    },
+    {
+      "relation": "isSourceOf",
+      "identifier": "10.7910/DVN/7WTH1N",
+      "resource_type": "dataset"
+    },
+    {
+      "relation": "isDerivedFrom",
+      "identifier": "10.5281/zenodo.15999930",
+      "resource_type": "software"
+    }
   ]
 }
