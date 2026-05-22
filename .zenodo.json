@@ -5,9 +5,11 @@
   "upload_type": "software",
   "access_right": "open",
   "creators": [
-    {"name": "Bates, Alexander Shakeel", "orcid": "0000-0002-1195-0445", "affiliation": "Harvard Medical School"},
-    {"name": "Ajabi, Zaki", "orcid": "0000-0002-4411-4005", "affiliation": "Harvard Medical School"},
-    {"name": "Drugowitsch, Jan", "orcid": "0000-0002-7846-0408", "affiliation": "Harvard Medical School"}
+    {"name": "Bates, Alexander Shakeel", "orcid": "0000-0002-1195-0445", "affiliation": "Harvard Medical School"}
+  ],
+  "contributors": [
+    {"type": "ContactPerson", "name": "Ajabi, Zaki", "orcid": "0000-0002-4411-4005", "affiliation": "Harvard Medical School"},
+    {"type": "ContactPerson", "name": "Drugowitsch, Jan", "orcid": "0000-0002-7846-0408", "affiliation": "Harvard Medical School"}
   ],
   "keywords": [
     "connectomics", "Drosophila", "influence", "PETSc", "SLEPc",
