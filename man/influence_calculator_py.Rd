@@ -9,7 +9,7 @@ influence_calculator_py(
   edgelist_simple = NULL,
   meta = NULL,
   signed = FALSE,
-  count_thresh = 5
+  count_thresh = 0
 )
 }
 \arguments{
@@ -24,7 +24,7 @@ Used when filename is NULL.}
 \item{signed}{Logical. Whether to use signed connectivity matrix (default: FALSE).}
 
 \item{count_thresh}{Numeric. Minimum threshold count for postsynaptic connections
-(default: 5).}
+(default: 0, i.e. no filtering — make any silent filtering visible to the caller).}
 }
 \value{
 InfluenceCalculator Python object

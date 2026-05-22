@@ -54,7 +54,7 @@ set_python_env <- function() {
 #'   Used when filename is NULL.
 #' @param signed Logical. Whether to use signed connectivity matrix (default: FALSE).
 #' @param count_thresh Numeric. Minimum threshold count for postsynaptic connections
-#'   (default: 5).
+#'   (default: 0, i.e. no filtering — make any silent filtering visible to the caller).
 #'
 #' @return InfluenceCalculator Python object
 #' @export
