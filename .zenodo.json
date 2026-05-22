@@ -6,7 +6,8 @@
   "access_right": "open",
   "creators": [
     {"name": "Bates, Alexander Shakeel", "orcid": "0000-0002-1195-0445", "affiliation": "Harvard Medical School"},
-    {"name": "Drugowitsch, Jan", "affiliation": "Harvard Medical School"}
+    {"name": "Ajabi, Zaki", "orcid": "0000-0002-4411-4005", "affiliation": "Harvard Medical School"},
+    {"name": "Drugowitsch, Jan", "orcid": "0000-0002-7846-0408", "affiliation": "Harvard Medical School"}
   ],
   "keywords": [
     "connectomics", "Drosophila", "influence", "PETSc", "SLEPc",
@@ -14,6 +15,7 @@
   ],
   "related_identifiers": [
     {"relation": "isSupplementTo", "identifier": "10.1101/2025.07.31.667571", "resource_type": "publication-preprint"},
-    {"relation": "isSourceOf", "identifier": "10.7910/DVN/7WTH1N", "resource_type": "dataset"}
+    {"relation": "isSourceOf", "identifier": "10.7910/DVN/7WTH1N", "resource_type": "dataset"},
+    {"relation": "isDerivedFrom", "identifier": "10.5281/zenodo.15999930", "resource_type": "software"}
   ]
 }
