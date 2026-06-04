@@ -1,11 +1,13 @@
 # influencer
 
 [![natverse](https://img.shields.io/badge/natverse-Part%20of%20the%20natverse-a241b6)](https://natverse.github.io)
+[![Nature (open access)](https://img.shields.io/badge/Nature-10.1038%2Fs41586--026--10735--w-006400)](https://doi.org/10.1038/s41586-026-10735-w)
+[![bioRxiv](https://img.shields.io/badge/bioRxiv-2025.07.31.667571v3-bd2c00)](https://www.biorxiv.org/content/10.1101/2025.07.31.667571v3)
 [![DOI](https://zenodo.org/badge/964174582.svg)](https://doi.org/10.5281/zenodo.15999929)
 [![R-CMD-check](https://github.com/natverse/influencer/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/natverse/influencer/actions/workflows/R-CMD-check.yaml)
 [![pkgdown](https://github.com/natverse/influencer/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/natverse/influencer/actions/workflows/pkgdown.yaml)
 
-Tools for computing influence scores of neurons in connectomes using linear dynamical models of neural signal propagation.
+Tools for computing influence scores of neurons in connectomes using linear dynamical models of neural signal propagation. The algorithm is described in the [BANC connectome paper](https://doi.org/10.1038/s41586-026-10735-w) (Bates, Phelps, Kim, Yang et al., *Nature* 2026 — open access).
 
 ## About
 
@@ -699,7 +701,7 @@ If you use this package in your research, please cite **all three** of the follo
    Ajabi, Zaki, Alexander S. Bates, and Jan Drugowitsch. 2025. Connectome Influence Calculator. Zenodo. https://doi.org/10.5281/ZENODO.15999930.
 
 2. **The scientific method and algorithm:**
-   Bates, Alexander Shakeel, Jasper S. Phelps, Minsu Kim, Helen H. Yang, Arie Matsliah, Zaki Ajabi, Eric Perlman, et al. 2025. "Distributed Control Circuits across a Brain-and-Cord Connectome." bioRxiv. https://doi.org/10.1101/2025.07.31.667571.
+   Bates AS, Phelps JS, Kim M, Yang HHJ, Matsliah A, Ajabi Z, Perlman E, *et al.* (2026). *Distributed control circuits across a brain-and-cord connectome.* **Nature** (open access). <https://doi.org/10.1038/s41586-026-10735-w>. Preprint: bioRxiv 2025.07.31.667571 (v3), <https://www.biorxiv.org/content/10.1101/2025.07.31.667571v3>.
 
 3. **This R package:**
    ```r
