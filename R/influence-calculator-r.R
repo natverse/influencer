@@ -617,7 +617,8 @@ influence_calculator <- function(edgelist_simple = NULL, meta = NULL, filename =
                            lambda_max = lambda_max)
   } else {
     # Python backend: from v0.2.0 of ConnectomeInfluenceCalculator no temporary
-    # SQLite is needed -- data frames are accepted directly via from_dataframes.
+    # SQLite is needed -- data frames are accepted directly by the DataFrame
+    # constructor (InfluenceCalculator(edgelist_df, meta_df)).
     influence_calculator_py(filename = filename,
                             edgelist_simple = edgelist_simple,
                             meta = meta,

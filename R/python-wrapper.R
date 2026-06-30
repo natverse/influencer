@@ -151,8 +151,10 @@ influence_calculator_py <- function(filename = NULL,
 
   ic <- tryCatch({
     if (!is.null(edgelist_simple)) {
-      # DataFrame path -- no temp SQLite needed.
-      ic_module$InfluenceCalculator$from_dataframes(
+      # DataFrame path -- no temp SQLite needed. From v0.2.0 the DataFrame
+      # edge list is the primary constructor (__init__) itself, so we call
+      # the class directly rather than a from_* classmethod.
+      ic_module$InfluenceCalculator(
         edgelist_df    = edgelist_simple,
         meta_df        = meta,
         signed         = signed,
@@ -166,7 +168,7 @@ influence_calculator_py <- function(filename = NULL,
       ext <- tolower(tools::file_ext(filename))
       switch(ext,
         "sqlite" = ,
-        "db"     = ic_module$InfluenceCalculator(
+        "db"     = ic_module$InfluenceCalculator$from_sql(
           filename       = filename,
           signed         = signed,
           count_thresh   = as.integer(count_thresh),
@@ -202,8 +204,9 @@ influence_calculator_py <- function(filename = NULL,
           excluded_nts   = excluded_py,
           lambda_max     = lambda_max
         ),
-        # Fallback: try the SQLite path (matches pre-v0.2.0 behaviour)
-        ic_module$InfluenceCalculator(
+        # Fallback: try the SQLite loader (matches pre-v0.2.0 behaviour,
+        # where SQLite was the only supported on-disk format).
+        ic_module$InfluenceCalculator$from_sql(
           filename       = filename,
           signed         = signed,
           count_thresh   = as.integer(count_thresh),
@@ -258,9 +261,15 @@ calculate_influence_py <- function(ic,
   seed_ids_py <- as.list(seed_ids)
   silenced_neurons_py <- if (length(silenced_neurons) == 0) list() else as.list(silenced_neurons)
 
+  # adjust = FALSE: return only the raw influence column. We apply the
+  # log/const transform once on the R side below (using this function's
+  # `const`), which keeps the output columns exactly as documented and
+  # avoids the Python default (adjust = TRUE, adjust_const = 24) silently
+  # adding three differently-scaled adjusted columns.
   result <- tryCatch({
     ic$calculate_influence(seed_ids = seed_ids_py,
-                           silenced_neurons = silenced_neurons_py)
+                           silenced_neurons = silenced_neurons_py,
+                           adjust = FALSE)
   }, error = function(e) {
     stop("Failed to calculate influence: ", e$message)
   })

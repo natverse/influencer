@@ -18,23 +18,25 @@ test_that("Python wrapper handles missing environment gracefully", {
 })
 
 # Skip Python tests when the connectome lib is unavailable OR doesn't expose the
-# v0.2.0 surface that this branch of `influencer` now targets (`from_dataframes`,
-# `inhibitory_nts`, `lambda_max`). Older installed versions of the Python lib
-# will load fine but reject the new kwargs at call time.
+# v0.2.0 surface that this branch of `influencer` now targets (DataFrame
+# `__init__`, the `from_*` classmethods, `inhibitory_nts`, `lambda_max`). Older
+# installed versions of the Python lib will load fine but reject the new kwargs
+# at call time.
 skip_if_no_python <- function() {
   python_ok <- tryCatch({
     reticulate::use_condaenv("r-reticulate", required = TRUE)
     ic_module <- reticulate::import("InfluenceCalculator")
-    # v0.2.0 marker: the from_dataframes classmethod is exposed on the class
-    has_from_df <- tryCatch(
-      reticulate::py_has_attr(ic_module$InfluenceCalculator, "from_dataframes"),
+    # v0.2.0 marker: the from_sql classmethod is exposed on the class (none of
+    # the from_* loaders existed pre-v0.2.0, when __init__ took a filename).
+    has_v020 <- tryCatch(
+      reticulate::py_has_attr(ic_module$InfluenceCalculator, "from_sql"),
       error = function(e) FALSE
     )
-    isTRUE(has_from_df)
+    isTRUE(has_v020)
   }, error = function(e) FALSE)
 
   skip_if_not(python_ok,
-              "Python InfluenceCalculator v0.2.0 (from_dataframes API) not available")
+              "Python InfluenceCalculator v0.2.0 (from_sql API) not available")
 }
 
 test_that("Python implementation works when available", {

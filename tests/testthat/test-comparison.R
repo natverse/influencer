@@ -1,18 +1,18 @@
 test_that("R and Python implementations give similar results", {
-  # Skip if Python lib unavailable OR pre-v0.2.0 (no from_dataframes / lambda_max)
+  # Skip if Python lib unavailable OR pre-v0.2.0 (no from_sql / lambda_max)
   skip_if_no_python <- function() {
     python_ok <- tryCatch({
       reticulate::use_condaenv("r-reticulate", required = TRUE)
       ic_module <- reticulate::import("InfluenceCalculator")
-      has_from_df <- tryCatch(
-        reticulate::py_has_attr(ic_module$InfluenceCalculator, "from_dataframes"),
+      has_v020 <- tryCatch(
+        reticulate::py_has_attr(ic_module$InfluenceCalculator, "from_sql"),
         error = function(e) FALSE
       )
-      isTRUE(has_from_df)
+      isTRUE(has_v020)
     }, error = function(e) FALSE)
 
     skip_if_not(python_ok,
-                "Python InfluenceCalculator v0.2.0 (from_dataframes API) not available")
+                "Python InfluenceCalculator v0.2.0 (from_sql API) not available")
   }
 
   skip_if_no_python()
@@ -91,20 +91,20 @@ test_that("R and Python implementations give similar results", {
 })
 
 test_that("Both R and Python implementations return character ID columns", {
-  # Skip if Python lib unavailable OR pre-v0.2.0 (no from_dataframes / lambda_max)
+  # Skip if Python lib unavailable OR pre-v0.2.0 (no from_sql / lambda_max)
   skip_if_no_python <- function() {
     python_ok <- tryCatch({
       reticulate::use_condaenv("r-reticulate", required = TRUE)
       ic_module <- reticulate::import("InfluenceCalculator")
-      has_from_df <- tryCatch(
-        reticulate::py_has_attr(ic_module$InfluenceCalculator, "from_dataframes"),
+      has_v020 <- tryCatch(
+        reticulate::py_has_attr(ic_module$InfluenceCalculator, "from_sql"),
         error = function(e) FALSE
       )
-      isTRUE(has_from_df)
+      isTRUE(has_v020)
     }, error = function(e) FALSE)
 
     skip_if_not(python_ok,
-                "Python InfluenceCalculator v0.2.0 (from_dataframes API) not available")
+                "Python InfluenceCalculator v0.2.0 (from_sql API) not available")
   }
 
   skip_if_no_python()
@@ -136,8 +136,8 @@ test_that("Both R and Python implementations return character ID columns", {
   expect_true(large_ids[1] %in% result_r$id)
   expect_false(any(grepl("e\\+", result_r$id)))  # No scientific notation
   
-  # Test Python implementation — v0.2.0+ takes data frames directly via
-  # from_dataframes (no temporary SQLite database is written).
+  # Test Python implementation — v0.2.0+ takes data frames directly via the
+  # DataFrame constructor (no temporary SQLite database is written).
   ic_py <- influence_calculator_py(edgelist_simple = edgelist_simple, meta = meta)
   result_py <- calculate_influence_py(ic_py, seed_ids = large_ids[1])
   

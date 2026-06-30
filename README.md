@@ -92,11 +92,12 @@ Raw influence scores span many orders of magnitude — at the default `lambda_ma
 adjusted_influence = sign(x) * (log(max(|x|, exp(-const))) + const)
 ```
 
-`const` defines the floor: any score whose magnitude is below `exp(-const)` is clipped to zero (a "junk-node" cutoff for nodes that are nearly disconnected from the seed). The default `const = 24` is calibrated for the *Drosophila* BANC connectome (~130k neurons, minimum meaningful score ~3.78e-11). For smaller networks compute it from your data:
+`const` defines the floor: any score whose magnitude is below `exp(-const)` is clipped to zero (a "junk-node" cutoff for nodes that are nearly disconnected from the seed). The default `const = 24` is calibrated for the *Drosophila* BANC connectome (~130k neurons, minimum meaningful score ~3.78e-11). For smaller networks compute it from your data — but anchor to a **low percentile** of the non-zero scores, not the absolute minimum. The single smallest non-zero score belongs to a near-disconnected pair and is dominated by iterative-solver round-off, which varies by machine; using it makes `const` non-reproducible and saturates the colour scale. A low percentile tracks the true signal floor and reproduces across machines:
 
 ```r
 raw_col <- grep("Influence_score", names(results), value = TRUE)[1]
-const <- -log(min(abs(results[[raw_col]])[abs(results[[raw_col]]) > 0]))
+nonzero <- abs(results[[raw_col]])[abs(results[[raw_col]]) > 0]
+const <- -log(stats::quantile(nonzero, 0.01))  # 1st-percentile floor
 adjusted <- adjust_influence(results, const = const)
 ```
 
@@ -262,10 +263,11 @@ install_python_influence_calculator()
 # SQLite (legacy)
 ic.py <- influence_calculator_py("connectome_dataset.sqlite")
 
-# Data frames — handed straight to the Python from_dataframes constructor;
-# no temporary SQLite database is written any more (this changed in v0.2.0
-# of the upstream Python package, which gained native DataFrame / CSV /
-# Parquet / Feather constructors).
+# Data frames — handed straight to the Python DataFrame constructor
+# (InfluenceCalculator(edgelist_df, meta_df)); no temporary SQLite database
+# is written any more (this changed in v0.2.0 of the upstream Python package,
+# which made the DataFrame edge list the primary __init__ and added native
+# SQLite / CSV / Parquet / Feather loaders).
 ic.py <- influence_calculator_py(edgelist_simple = dummy_edges,
                                  meta = dummy_meta,
                                  signed = TRUE,
