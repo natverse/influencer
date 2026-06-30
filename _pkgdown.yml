@@ -60,7 +60,6 @@ reference:
   desc: Supporting functions and utilities
   contents:
   - influence_calculator
-  - create_temp_sqlite
 
 articles:
 - title: Getting Started
