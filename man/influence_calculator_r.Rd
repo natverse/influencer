@@ -40,7 +40,7 @@ When \code{TRUE}, \code{inhibitory_nts} must be supplied.}
 \item{const}{Constant value added to log(influence) to ensure non-negative adjusted
 influence scores. Should be set to -log(minimum_accepted_influence) where
 minimum_accepted_influence is the smallest influence value considered meaningful.
-Default 24 corresponds to minimum_accepted_influence = exp(-24) ≈ 3.78e-11.}
+Default 24 corresponds to minimum_accepted_influence = exp(-24) ~ 3.78e-11.}
 
 \item{inhibitory_nts}{Character vector of \code{top_nt} values whose pre-neurons should
 receive negative weights when \code{signed = TRUE}. The library has no per-organism
@@ -55,12 +55,12 @@ on the receptor mix (e.g. dopamine, serotonin in \emph{C. elegans}) and so canno
 assigned a single sign safely.}
 
 \item{lambda_max}{Numeric in \verb{(0, 1)}. Target spectral radius of the rescaled
-connectivity matrix W̃; controls how much the leading recurrent mode of
-\verb{(I − W̃)^-1} is amplified (gain = \code{1/(1 - lambda_max)}). The default \code{0.99}
-gives a \verb{100×} gain — appropriate for whole-CNS \emph{Drosophila} (BANC-scale) graphs
+connectivity matrix W~; controls how much the leading recurrent mode of
+\verb{(I - W~)^-1} is amplified (gain = \code{1/(1 - lambda_max)}). The default \code{0.99}
+gives a \verb{100x} gain -- appropriate for whole-CNS \emph{Drosophila} (BANC-scale) graphs
 where you want sensitivity to weak distal influence. Lower values (e.g. \code{0.5},
-\verb{2×} gain) damp the leading mode and expose per-target seed specificity at the
-cost of attenuating long polysynaptic effects — more appropriate for smaller
+\verb{2x} gain) damp the leading mode and expose per-target seed specificity at the
+cost of attenuating long polysynaptic effects -- more appropriate for smaller
 graphs like \emph{C. elegans}. Treat it as a "reverb knob": near 1 a signal echoes
 through long indirect paths; near 0.5 it mostly traverses short paths.}
 

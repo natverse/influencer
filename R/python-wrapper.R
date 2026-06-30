@@ -63,7 +63,7 @@ set_python_env <- function() {
 #' @param signed Logical. Whether to use signed connectivity matrix (default: FALSE).
 #'   When `TRUE`, `inhibitory_nts` must be supplied.
 #' @param count_thresh Numeric. Minimum threshold count for postsynaptic connections
-#'   (default: 0).
+#'   (default: 0, i.e. no filtering — make any silent filtering visible to the caller).
 #' @param inhibitory_nts Character vector of `top_nt` values whose pre-neurons should
 #'   receive negative weights when `signed = TRUE`. The Python library has no
 #'   per-organism default; you must supply this set explicitly when `signed = TRUE`.

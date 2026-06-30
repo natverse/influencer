@@ -95,7 +95,7 @@ receive negative weights when \code{signed = TRUE}. Required for signed mode.}
 contribute nothing to W (their outgoing edges are dropped). Independent
 of \code{signed}.}
 
-\item{\code{lambda_max}}{Target spectral radius of the rescaled W̃; default 0.99.
+\item{\code{lambda_max}}{Target spectral radius of the rescaled W~; default 0.99.
 See \code{\link[=influence_calculator_r]{influence_calculator_r()}} for the trade-off it controls.}
 }
 \if{html}{\out{</div>}}

@@ -13,7 +13,7 @@ column is present, influence scores will be grouped and averaged by target.}
 \item{const}{Constant value added to log(influence) to ensure non-negative adjusted
 influence scores. Should be set to -log(minimum_accepted_influence) where
 minimum_accepted_influence is the smallest influence value considered meaningful.
-Default 24 corresponds to minimum_accepted_influence = exp(-24) ≈ 3.78e-11.}
+Default 24 corresponds to minimum_accepted_influence = exp(-24) ~ 3.78e-11.}
 
 \item{signif}{Number of significant figures for output values.}
 

@@ -1,0 +1,65 @@
+{
+  "title": "influencer: R Tools for Connectome Influence Analysis",
+  "version": "2.0.0",
+  "description": "Tools for calculating influence scores of neurons in connectomes. R wrapper around the PETSc/SLEPc-backed connectome-influence-calculator Python library; used in Bates, Phelps, Kim, Yang et al. (2026, Nature, open access; doi: 10.1038/s41586-026-10735-w; preprint v3: https://www.biorxiv.org/content/10.1101/2025.07.31.667571v3) to compute the all-to-all + sensory-to-effector + AN/DN-to-effector influence tables for the BANC connectome.",
+  "license": "GPL-3.0-only",
+  "upload_type": "software",
+  "access_right": "open",
+  "creators": [
+    {
+      "name": "Bates, Alexander Shakeel",
+      "orcid": "0000-0002-1195-0445",
+      "affiliation": "Harvard Medical School"
+    },
+    {
+      "name": "Ajabi, Zaki",
+      "orcid": "0000-0002-4411-4005",
+      "affiliation": "Harvard Medical School"
+    },
+    {
+      "name": "Drugowitsch, Jan",
+      "orcid": "0000-0002-7846-0408",
+      "affiliation": "Harvard Medical School"
+    }
+  ],
+  "grants": [
+    {
+      "id": "029chgv08::222782"
+    },
+    {
+      "id": "01cwqze88::1U19NS118246-01"
+    }
+  ],
+  "keywords": [
+    "connectomics",
+    "Drosophila",
+    "influence",
+    "PETSc",
+    "SLEPc",
+    "natverse",
+    "BANC",
+    "graph analysis"
+  ],
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "10.1038/s41586-026-10735-w",
+      "resource_type": "publication-article"
+    },
+    {
+      "relation": "isSupplementTo",
+      "identifier": "10.1101/2025.07.31.667571",
+      "resource_type": "publication-preprint"
+    },
+    {
+      "relation": "isSourceOf",
+      "identifier": "10.7910/DVN/7WTH1N",
+      "resource_type": "dataset"
+    },
+    {
+      "relation": "isDerivedFrom",
+      "identifier": "10.5281/zenodo.15999930",
+      "resource_type": "software"
+    }
+  ]
+}

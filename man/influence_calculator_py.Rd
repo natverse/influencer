@@ -34,7 +34,7 @@ when filename is NULL.}
 When \code{TRUE}, \code{inhibitory_nts} must be supplied.}
 
 \item{count_thresh}{Numeric. Minimum threshold count for postsynaptic connections
-(default: 0).}
+(default: 0, i.e. no filtering — make any silent filtering visible to the caller).}
 
 \item{inhibitory_nts}{Character vector of \code{top_nt} values whose pre-neurons should
 receive negative weights when \code{signed = TRUE}. The Python library has no
@@ -46,7 +46,7 @@ whose sign at a given target depends on the receptor mix and so cannot be
 assigned a single sign safely.}
 
 \item{lambda_max}{Numeric in \verb{(0, 1)}. Target spectral radius of the rescaled
-connectivity matrix W̃ (default \code{0.99}). Sets the leading-mode gain to
+connectivity matrix W~ (default \code{0.99}). Sets the leading-mode gain to
 \code{1/(1 - lambda_max)}. Lower values (e.g. \code{0.5}) are more appropriate for small
 graphs like \emph{C. elegans}; the default is calibrated for whole-CNS \emph{Drosophila}
 (BANC-scale) graphs. See \code{\link[=influence_calculator_r]{influence_calculator_r()}} for the full discussion.}
