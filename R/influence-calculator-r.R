@@ -38,6 +38,13 @@
 #'   cost of attenuating long polysynaptic effects -- more appropriate for smaller
 #'   graphs like *C. elegans*. Treat it as a "reverb knob": near 1 a signal echoes
 #'   through long indirect paths; near 0.5 it mostly traverses short paths.
+#' @param syn_weight_measure Character, one of `"norm"` (default) or `"count"`. Which
+#'   edge column populates the connectivity matrix W: `"count"` is the raw synapse
+#'   count, `"norm"` is the per-postsynaptic input fraction (count / sum(count) per
+#'   post; recomputed from `count` if absent). The default `"norm"` matches the Python
+#'   backend as exposed through [influence_calculator_py()]. For `signed = TRUE`,
+#'   `"count"` is the more natural choice: negating `"norm"` weights breaks the
+#'   column-sum-to-1 property and loses the input-normalisation interpretation.
 #' @param neg_neurotransmitters **Deprecated** (renamed to `inhibitory_nts`). Still
 #'   accepted for backwards compatibility but emits a warning.
 #'
@@ -71,7 +78,9 @@ influence_calculator_r <- function(edgelist_simple = NULL, meta = NULL, filename
                                    sqlite = FALSE, signed = FALSE, count_thresh = 3, const = 24,
                                    inhibitory_nts = NULL, excluded_nts = NULL,
                                    lambda_max = 0.99,
+                                   syn_weight_measure = c("norm", "count"),
                                    neg_neurotransmitters = NULL) {
+  syn_weight_measure <- match.arg(syn_weight_measure)
   # Backwards compatibility: accept the old neg_neurotransmitters argument name
   if (!is.null(neg_neurotransmitters)) {
     warning("`neg_neurotransmitters` is deprecated; use `inhibitory_nts` instead.")
@@ -88,7 +97,8 @@ influence_calculator_r <- function(edgelist_simple = NULL, meta = NULL, filename
                            const = const,
                            inhibitory_nts = inhibitory_nts,
                            excluded_nts = excluded_nts,
-                           lambda_max = lambda_max)
+                           lambda_max = lambda_max,
+                           syn_weight_measure = syn_weight_measure)
 }
 
 #' R6 Class for Native R Influence Calculator
@@ -132,6 +142,8 @@ InfluenceCalculatorR <- R6::R6Class("InfluenceCalculatorR",
     inhibitory_nts = NULL,
     #' @field excluded_nts top_nt values whose pre-neurons contribute nothing to W
     excluded_nts = NULL,
+    #' @field syn_weight_measure Edge column used to populate W ("norm" or "count")
+    syn_weight_measure = NULL,
 
     #' @description
     #' Create a new InfluenceCalculatorR object
@@ -150,10 +162,13 @@ InfluenceCalculatorR <- R6::R6Class("InfluenceCalculatorR",
     #'   of `signed`.
     #' @param lambda_max Target spectral radius of the rescaled W~; default 0.99.
     #'   See [influence_calculator_r()] for the trade-off it controls.
+    #' @param syn_weight_measure Edge column used to populate W, `"norm"` (default)
+    #'   or `"count"`. See [influence_calculator_r()] for the trade-off.
     initialize = function(edgelist_simple = NULL, meta = NULL, filename = NULL,
                           sqlite = FALSE, signed = FALSE, count_thresh = 3, const = 24,
                           inhibitory_nts = NULL, excluded_nts = NULL,
-                          lambda_max = 0.99) {
+                          lambda_max = 0.99, syn_weight_measure = c("norm", "count")) {
+      syn_weight_measure <- match.arg(syn_weight_measure)
       # Validate lambda_max
       if (!is.numeric(lambda_max) || length(lambda_max) != 1L ||
           !is.finite(lambda_max) || lambda_max <= 0 || lambda_max >= 1) {
@@ -172,6 +187,7 @@ InfluenceCalculatorR <- R6::R6Class("InfluenceCalculatorR",
       self$lambda_max <- lambda_max
       self$inhibitory_nts <- if (is.null(inhibitory_nts)) character(0) else as.character(inhibitory_nts)
       self$excluded_nts <- if (is.null(excluded_nts)) character(0) else as.character(excluded_nts)
+      self$syn_weight_measure <- syn_weight_measure
 
       # Branch based on data source: SQLite database or R data frames
       if (sqlite) {
@@ -395,7 +411,7 @@ InfluenceCalculatorR <- R6::R6Class("InfluenceCalculatorR",
       self$index_to_id <- setNames(as.character(unique_ids), seq_along(unique_ids))
     },
 
-    create_sparse_W = function(elist, syn_weight_measure = "norm") {
+    create_sparse_W = function(elist, syn_weight_measure = self$syn_weight_measure) {
       # Apply excluded_nts first: drop outgoing edges from pre-neurons whose top_nt
       # is in excluded_nts. Independent of signed=TRUE/FALSE.
       if (length(self$excluded_nts) > 0L) {
@@ -581,6 +597,9 @@ InfluenceCalculatorR <- R6::R6Class("InfluenceCalculatorR",
 #'   contribute nothing to W. Independent of `signed`.
 #' @param lambda_max Numeric in `(0, 1)`. Target spectral radius of the rescaled
 #'   matrix; default `0.99`. See [influence_calculator_r()].
+#' @param syn_weight_measure Character, one of `"norm"` (default) or `"count"`. Edge
+#'   column used to populate W; forwarded to both backends. See
+#'   [influence_calculator_r()] for the trade-off.
 #'
 #' @return InfluenceCalculator object (either Python or R implementation)
 #' @export
@@ -601,8 +620,10 @@ influence_calculator <- function(edgelist_simple = NULL, meta = NULL, filename =
                                  sqlite = FALSE, method = "r", signed = FALSE,
                                  count_thresh = 3, const = 24,
                                  inhibitory_nts = NULL, excluded_nts = NULL,
-                                 lambda_max = 0.99) {
+                                 lambda_max = 0.99,
+                                 syn_weight_measure = c("norm", "count")) {
   method <- match.arg(method, choices = c("r", "python"))
+  syn_weight_measure <- match.arg(syn_weight_measure)
 
   if (method == "r") {
     influence_calculator_r(edgelist_simple = edgelist_simple,
@@ -614,7 +635,8 @@ influence_calculator <- function(edgelist_simple = NULL, meta = NULL, filename =
                            const = const,
                            inhibitory_nts = inhibitory_nts,
                            excluded_nts = excluded_nts,
-                           lambda_max = lambda_max)
+                           lambda_max = lambda_max,
+                           syn_weight_measure = syn_weight_measure)
   } else {
     # Python backend: from v0.2.0 of ConnectomeInfluenceCalculator no temporary
     # SQLite is needed -- data frames are accepted directly by the DataFrame
@@ -626,6 +648,7 @@ influence_calculator <- function(edgelist_simple = NULL, meta = NULL, filename =
                             count_thresh = count_thresh,
                             inhibitory_nts = inhibitory_nts,
                             excluded_nts = excluded_nts,
-                            lambda_max = lambda_max)
+                            lambda_max = lambda_max,
+                            syn_weight_measure = syn_weight_measure)
   }
 }

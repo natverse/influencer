@@ -189,6 +189,36 @@ test_that("R implementation excludes NTs and applies sign-preserving signed mode
   expect_true(all(col2[col2 != 0] < 0))
 })
 
+test_that("R implementation exposes syn_weight_measure (default norm) and validates it", {
+  # count and norm deliberately differ so the two measures produce different W.
+  edgelist_simple <- data.frame(
+    pre   = c(1, 2, 3),
+    post  = c(2, 3, 1),
+    count = c(10, 8, 5),
+    norm  = c(0.5, 0.4, 0.3)
+  )
+  meta <- data.frame(root_id = c(1, 2, 3))
+
+  # Default measure is "norm": W is populated from the norm column.
+  ic_norm <- influence_calculator_r(edgelist_simple = edgelist_simple, meta = meta)
+  expect_equal(ic_norm$syn_weight_measure, "norm")
+  # Edge pre=1 -> post=2 lands at W[2, 1] (post = rows, pre = cols).
+  expect_equal(ic_norm$W[2, 1], 0.5)
+
+  # "count" populates W from the raw synapse count instead.
+  ic_count <- influence_calculator_r(edgelist_simple = edgelist_simple, meta = meta,
+                                     syn_weight_measure = "count")
+  expect_equal(ic_count$syn_weight_measure, "count")
+  expect_equal(ic_count$W[2, 1], 10)
+
+  # Unknown measures are rejected by match.arg.
+  expect_error(
+    influence_calculator_r(edgelist_simple = edgelist_simple, meta = meta,
+                           syn_weight_measure = "weight"),
+    "should be one of"
+  )
+})
+
 test_that("R implementation handles different thresholds", {
   db_path <- system.file("tests", "testthat", "toy_network_example.sqlite", 
                          package = "influencer")

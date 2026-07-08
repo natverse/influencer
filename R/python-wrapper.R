@@ -64,6 +64,14 @@ set_python_env <- function() {
 #'   When `TRUE`, `inhibitory_nts` must be supplied.
 #' @param count_thresh Numeric. Minimum threshold count for postsynaptic connections
 #'   (default: 0, i.e. no filtering — make any silent filtering visible to the caller).
+#' @param syn_weight_measure Character, one of `"norm"` (default) or `"count"`. Which
+#'   edge column populates the connectivity matrix W: `"count"` is the raw synapse
+#'   count, `"norm"` is the per-postsynaptic input fraction (count / sum(count) per
+#'   post). The package default `"norm"` matches [influence_calculator_r()], so the R
+#'   and Python backends agree; note the upstream Python library's own default is
+#'   `"count"`. For `signed = TRUE`, `"count"` is the more natural choice: negating
+#'   `"norm"` weights breaks the column-sum-to-1 property and loses the
+#'   input-normalisation interpretation.
 #' @param inhibitory_nts Character vector of `top_nt` values whose pre-neurons should
 #'   receive negative weights when `signed = TRUE`. The Python library has no
 #'   per-organism default; you must supply this set explicitly when `signed = TRUE`.
@@ -100,9 +108,11 @@ influence_calculator_py <- function(filename = NULL,
                                     meta = NULL,
                                     signed = FALSE,
                                     count_thresh = 0,
+                                    syn_weight_measure = c("norm", "count"),
                                     inhibitory_nts = NULL,
                                     excluded_nts = NULL,
                                     lambda_max = 0.99) {
+  syn_weight_measure <- match.arg(syn_weight_measure)
   # Validate input arguments
   if (is.null(filename) && is.null(edgelist_simple)) {
     stop("Either filename or edgelist_simple (and meta) must be provided")
@@ -155,13 +165,14 @@ influence_calculator_py <- function(filename = NULL,
       # edge list is the primary constructor (__init__) itself, so we call
       # the class directly rather than a from_* classmethod.
       ic_module$InfluenceCalculator(
-        edgelist_df    = edgelist_simple,
-        meta_df        = meta,
-        signed         = signed,
-        count_thresh   = as.integer(count_thresh),
-        inhibitory_nts = inhibitory_py,
-        excluded_nts   = excluded_py,
-        lambda_max     = lambda_max
+        edgelist_df        = edgelist_simple,
+        meta_df            = meta,
+        signed             = signed,
+        count_thresh       = as.integer(count_thresh),
+        syn_weight_measure = syn_weight_measure,
+        inhibitory_nts     = inhibitory_py,
+        excluded_nts       = excluded_py,
+        lambda_max         = lambda_max
       )
     } else {
       # File path -- dispatch on extension to the matching from_* classmethod.
@@ -169,50 +180,55 @@ influence_calculator_py <- function(filename = NULL,
       switch(ext,
         "sqlite" = ,
         "db"     = ic_module$InfluenceCalculator$from_sql(
-          filename       = filename,
-          signed         = signed,
-          count_thresh   = as.integer(count_thresh),
-          inhibitory_nts = inhibitory_py,
-          excluded_nts   = excluded_py,
-          lambda_max     = lambda_max
+          filename           = filename,
+          signed             = signed,
+          count_thresh       = as.integer(count_thresh),
+          syn_weight_measure = syn_weight_measure,
+          inhibitory_nts     = inhibitory_py,
+          excluded_nts       = excluded_py,
+          lambda_max         = lambda_max
         ),
         "csv"    = ic_module$InfluenceCalculator$from_csv(
-          edgelist_path  = filename,
-          meta_path      = NULL,
-          signed         = signed,
-          count_thresh   = as.integer(count_thresh),
-          inhibitory_nts = inhibitory_py,
-          excluded_nts   = excluded_py,
-          lambda_max     = lambda_max
+          edgelist_path      = filename,
+          meta_path          = NULL,
+          signed             = signed,
+          count_thresh       = as.integer(count_thresh),
+          syn_weight_measure = syn_weight_measure,
+          inhibitory_nts     = inhibitory_py,
+          excluded_nts       = excluded_py,
+          lambda_max         = lambda_max
         ),
         "parquet" = ic_module$InfluenceCalculator$from_parquet(
-          edgelist_path  = filename,
-          meta_path      = NULL,
-          signed         = signed,
-          count_thresh   = as.integer(count_thresh),
-          inhibitory_nts = inhibitory_py,
-          excluded_nts   = excluded_py,
-          lambda_max     = lambda_max
+          edgelist_path      = filename,
+          meta_path          = NULL,
+          signed             = signed,
+          count_thresh       = as.integer(count_thresh),
+          syn_weight_measure = syn_weight_measure,
+          inhibitory_nts     = inhibitory_py,
+          excluded_nts       = excluded_py,
+          lambda_max         = lambda_max
         ),
         "feather" = ,
         "arrow"   = ic_module$InfluenceCalculator$from_feather(
-          edgelist_path  = filename,
-          meta_path      = NULL,
-          signed         = signed,
-          count_thresh   = as.integer(count_thresh),
-          inhibitory_nts = inhibitory_py,
-          excluded_nts   = excluded_py,
-          lambda_max     = lambda_max
+          edgelist_path      = filename,
+          meta_path          = NULL,
+          signed             = signed,
+          count_thresh       = as.integer(count_thresh),
+          syn_weight_measure = syn_weight_measure,
+          inhibitory_nts     = inhibitory_py,
+          excluded_nts       = excluded_py,
+          lambda_max         = lambda_max
         ),
         # Fallback: try the SQLite loader (matches pre-v0.2.0 behaviour,
         # where SQLite was the only supported on-disk format).
         ic_module$InfluenceCalculator$from_sql(
-          filename       = filename,
-          signed         = signed,
-          count_thresh   = as.integer(count_thresh),
-          inhibitory_nts = inhibitory_py,
-          excluded_nts   = excluded_py,
-          lambda_max     = lambda_max
+          filename           = filename,
+          signed             = signed,
+          count_thresh       = as.integer(count_thresh),
+          syn_weight_measure = syn_weight_measure,
+          inhibitory_nts     = inhibitory_py,
+          excluded_nts       = excluded_py,
+          lambda_max         = lambda_max
         )
       )
     }

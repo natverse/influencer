@@ -15,6 +15,7 @@ influence_calculator_r(
   inhibitory_nts = NULL,
   excluded_nts = NULL,
   lambda_max = 0.99,
+  syn_weight_measure = c("norm", "count"),
   neg_neurotransmitters = NULL
 )
 }
@@ -63,6 +64,14 @@ where you want sensitivity to weak distal influence. Lower values (e.g. \code{0.
 cost of attenuating long polysynaptic effects -- more appropriate for smaller
 graphs like \emph{C. elegans}. Treat it as a "reverb knob": near 1 a signal echoes
 through long indirect paths; near 0.5 it mostly traverses short paths.}
+
+\item{syn_weight_measure}{Character, one of \code{"norm"} (default) or \code{"count"}. Which
+edge column populates the connectivity matrix W: \code{"count"} is the raw synapse
+count, \code{"norm"} is the per-postsynaptic input fraction (count / sum(count) per
+post; recomputed from \code{count} if absent). The default \code{"norm"} matches the Python
+backend as exposed through \code{\link[=influence_calculator_py]{influence_calculator_py()}}. For \code{signed = TRUE},
+\code{"count"} is the more natural choice: negating \code{"norm"} weights breaks the
+column-sum-to-1 property and loses the input-normalisation interpretation.}
 
 \item{neg_neurotransmitters}{\strong{Deprecated} (renamed to \code{inhibitory_nts}). Still
 accepted for backwards compatibility but emits a warning.}

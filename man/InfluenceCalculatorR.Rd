@@ -40,6 +40,8 @@ using efficient sparse matrix operations.
 \item{\code{inhibitory_nts}}{top_nt values whose pre-neurons get negated weights when signed}
 
 \item{\code{excluded_nts}}{top_nt values whose pre-neurons contribute nothing to W}
+
+\item{\code{syn_weight_measure}}{Edge column used to populate W ("norm" or "count")}
 }
 \if{html}{\out{</div>}}
 }
@@ -67,7 +69,8 @@ Create a new InfluenceCalculatorR object
   const = 24,
   inhibitory_nts = NULL,
   excluded_nts = NULL,
-  lambda_max = 0.99
+  lambda_max = 0.99,
+  syn_weight_measure = c("norm", "count")
 )}\if{html}{\out{</div>}}
 }
 
@@ -97,6 +100,9 @@ of \code{signed}.}
 
 \item{\code{lambda_max}}{Target spectral radius of the rescaled W~; default 0.99.
 See \code{\link[=influence_calculator_r]{influence_calculator_r()}} for the trade-off it controls.}
+
+\item{\code{syn_weight_measure}}{Edge column used to populate W, \code{"norm"} (default)
+or \code{"count"}. See \code{\link[=influence_calculator_r]{influence_calculator_r()}} for the trade-off.}
 }
 \if{html}{\out{</div>}}
 }

@@ -10,6 +10,7 @@ influence_calculator_py(
   meta = NULL,
   signed = FALSE,
   count_thresh = 0,
+  syn_weight_measure = c("norm", "count"),
   inhibitory_nts = NULL,
   excluded_nts = NULL,
   lambda_max = 0.99
@@ -35,6 +36,15 @@ When \code{TRUE}, \code{inhibitory_nts} must be supplied.}
 
 \item{count_thresh}{Numeric. Minimum threshold count for postsynaptic connections
 (default: 0, i.e. no filtering — make any silent filtering visible to the caller).}
+
+\item{syn_weight_measure}{Character, one of \code{"norm"} (default) or \code{"count"}. Which
+edge column populates the connectivity matrix W: \code{"count"} is the raw synapse
+count, \code{"norm"} is the per-postsynaptic input fraction (count / sum(count) per
+post). The package default \code{"norm"} matches \code{\link[=influence_calculator_r]{influence_calculator_r()}}, so the R
+and Python backends agree; note the upstream Python library's own default is
+\code{"count"}. For \code{signed = TRUE}, \code{"count"} is the more natural choice: negating
+\code{"norm"} weights breaks the column-sum-to-1 property and loses the
+input-normalisation interpretation.}
 
 \item{inhibitory_nts}{Character vector of \code{top_nt} values whose pre-neurons should
 receive negative weights when \code{signed = TRUE}. The Python library has no

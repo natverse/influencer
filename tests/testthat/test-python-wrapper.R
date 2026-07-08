@@ -17,6 +17,15 @@ test_that("Python wrapper handles missing environment gracefully", {
   )
 })
 
+test_that("Python wrapper validates syn_weight_measure before touching Python", {
+  # match.arg runs before any conda/reticulate activation, so an invalid measure
+  # errors regardless of whether the Python environment is installed.
+  expect_error(
+    influence_calculator_py("nonexistent.sqlite", syn_weight_measure = "weight"),
+    "should be one of"
+  )
+})
+
 # Skip Python tests when the connectome lib is unavailable OR doesn't expose the
 # v0.2.0 surface that this branch of `influencer` now targets (DataFrame
 # `__init__`, the `from_*` classmethods, `inhibitory_nts`, `lambda_max`). Older

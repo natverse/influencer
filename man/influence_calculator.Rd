@@ -15,7 +15,8 @@ influence_calculator(
   const = 24,
   inhibitory_nts = NULL,
   excluded_nts = NULL,
-  lambda_max = 0.99
+  lambda_max = 0.99,
+  syn_weight_measure = c("norm", "count")
 )
 }
 \arguments{
@@ -48,6 +49,10 @@ contribute nothing to W. Independent of \code{signed}.}
 
 \item{lambda_max}{Numeric in \verb{(0, 1)}. Target spectral radius of the rescaled
 matrix; default \code{0.99}. See \code{\link[=influence_calculator_r]{influence_calculator_r()}}.}
+
+\item{syn_weight_measure}{Character, one of \code{"norm"} (default) or \code{"count"}. Edge
+column used to populate W; forwarded to both backends. See
+\code{\link[=influence_calculator_r]{influence_calculator_r()}} for the trade-off.}
 }
 \value{
 InfluenceCalculator object (either Python or R implementation)
