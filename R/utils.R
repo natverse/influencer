@@ -15,7 +15,7 @@
 #' @param const Constant value added to log(influence) to ensure non-negative adjusted
 #'   influence scores. Should be set to -log(minimum_accepted_influence) where
 #'   minimum_accepted_influence is the smallest influence value considered meaningful.
-#'   Default 24 corresponds to minimum_accepted_influence = exp(-24) ≈ 3.78e-11.
+#'   Default 24 corresponds to minimum_accepted_influence = exp(-24) ~ 3.78e-11.
 #' @param signif Number of significant figures for output values.
 #' @param minmax Logical. If TRUE, add min-max normalised columns by target and by seed.
 #'   Default FALSE for backwards compatibility.
@@ -64,8 +64,6 @@ adjust_influence <- function(influence_df,
                              const = 24,
                              signif = 6,
                              minmax = FALSE){
-  inf.threshold <- exp(-const)
-
   # Track which columns we added (to clean up later)
   added_target <- FALSE
   added_influence_original <- FALSE
@@ -104,24 +102,27 @@ adjust_influence <- function(influence_df,
   # Count unique target neurons per target group
   dt[, no_targets := data.table::uniqueN(id), by = target]
 
-  # Aggregate: sum influence per (target, seed), deduplicate
+  # Aggregate: sum influence per (target, seed), deduplicate. The sum preserves
+  # sign (so an inhibitory-dominated path returns a negative summed influence).
   dt[, influence_summed := sum(influence_original, na.rm = TRUE), by = .(target, seed)]
   dt <- unique(dt, by = c("target", "seed"), fromLast = FALSE)
 
-  # Floor at threshold
-  dt[influence_summed < inf.threshold, influence_summed := inf.threshold]
+  # Sign-preserving log transform: sign(x) * (log(max(|x|, exp(-const))) + const).
+  # Floor magnitudes below exp(-const) to zero in either sign -- junk-node cutoff.
+  .signed_adjust <- function(values, const_local) {
+    floor_val <- exp(-const_local)
+    mag <- pmax(abs(values), floor_val)
+    out <- sign(values) * (log(mag) + const_local)
+    out[abs(values) < floor_val] <- 0
+    out
+  }
 
-  # Compute normalised versions
-  dt[, adjusted_influence_norm_by_sources_and_targets :=
-       pmax(influence_summed / (no_sources[1] * no_targets[1]), inf.threshold),
-     by = .(target, seed)]
-
-  # Log transform + constant
   dt[, `:=`(
-    adjusted_influence = log(influence_summed) + const,
-    adjusted_influence_norm_by_targets = log(influence_summed / no_targets) + const,
+    adjusted_influence = .signed_adjust(influence_summed, const),
+    adjusted_influence_norm_by_targets =
+      .signed_adjust(influence_summed / no_targets, const),
     adjusted_influence_norm_by_sources_and_targets =
-      log(adjusted_influence_norm_by_sources_and_targets) + const
+      .signed_adjust(influence_summed / (no_sources * no_targets), const)
   )]
 
   # Replace NA with 0

@@ -16,6 +16,15 @@ echo -e "${BLUE}🧠 ConnectomeInfluenceCalculator Installation Script${NC}"
 echo -e "${BLUE}====================================================${NC}"
 echo ""
 
+# Pinned release of the ConnectomeInfluenceCalculator Python library that this
+# version of influencer targets. Keep this in lockstep with the
+# SystemRequirements line in DESCRIPTION. Must be an existing git tag/branch in
+# the upstream repo; override with IC_VERSION=... to test against another ref.
+IC_REPO="https://github.com/DrugowitschLab/ConnectomeInfluenceCalculator.git"
+IC_VERSION="${IC_VERSION:-v2.0.0}"
+echo -e "${BLUE}Targeting ConnectomeInfluenceCalculator ${IC_VERSION}${NC}"
+echo ""
+
 # Function to check if command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
@@ -45,7 +54,7 @@ try_simple_pip_install() {
     # Clone repository to temporary directory
     TEMP_IC_DIR="/tmp/ConnectomeInfluenceCalculator_$$"
     
-    if git clone https://github.com/DrugowitschLab/ConnectomeInfluenceCalculator.git "$TEMP_IC_DIR"; then
+    if git clone --branch "$IC_VERSION" --depth 1 "$IC_REPO" "$TEMP_IC_DIR"; then
         echo -e "${GREEN}✅ Repository cloned successfully${NC}"
         
         # Fix pyproject.toml if needed
@@ -165,7 +174,7 @@ install_with_petsc_slepc() {
     
     # Clone and install ConnectomeInfluenceCalculator
     TEMP_IC_DIR="/tmp/ConnectomeInfluenceCalculator_$$"
-    if git clone https://github.com/DrugowitschLab/ConnectomeInfluenceCalculator.git "$TEMP_IC_DIR"; then
+    if git clone --branch "$IC_VERSION" --depth 1 "$IC_REPO" "$TEMP_IC_DIR"; then
         echo "   Installing ConnectomeInfluenceCalculator..."
         
         # Fix pyproject.toml if needed

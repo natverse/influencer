@@ -9,36 +9,80 @@ influence_calculator_py(
   edgelist_simple = NULL,
   meta = NULL,
   signed = FALSE,
-  count_thresh = 0
+  count_thresh = 0,
+  syn_weight_measure = c("norm", "count"),
+  inhibitory_nts = NULL,
+  excluded_nts = NULL,
+  lambda_max = 0.99
 )
 }
 \arguments{
-\item{filename}{Character. Path to SQLite database file containing connectome data.}
+\item{filename}{Character. Path to a connectome data file. The format is detected
+from the file extension: \code{.sqlite}/\code{.db} use the original SQLite constructor,
+\code{.csv} uses \code{from_csv}, \code{.parquet} uses \code{from_parquet}, and \code{.feather}/\code{.arrow}
+use \code{from_feather}. If the extension is unrecognised the original SQLite path
+is tried (matching pre-v0.2.0 behaviour).}
 
 \item{edgelist_simple}{Data frame with edge list containing columns 'pre', 'post',
-'count', and 'norm'. Used when filename is NULL.}
+and either 'count' (raw synapse count) or 'weight' (pre-normalised). 'norm' is
+optional and recomputed from 'count' if absent. Used when filename is NULL.}
 
-\item{meta}{Data frame with metadata containing at least 'root_id' column.
-Used when filename is NULL.}
+\item{meta}{Data frame with metadata containing at least 'root_id' column. Must
+also contain 'top_nt' when \code{signed = TRUE} or \code{excluded_nts} is supplied. Used
+when filename is NULL.}
 
-\item{signed}{Logical. Whether to use signed connectivity matrix (default: FALSE).}
+\item{signed}{Logical. Whether to use signed connectivity matrix (default: FALSE).
+When \code{TRUE}, \code{inhibitory_nts} must be supplied.}
 
 \item{count_thresh}{Numeric. Minimum threshold count for postsynaptic connections
 (default: 0, i.e. no filtering — make any silent filtering visible to the caller).}
+
+\item{syn_weight_measure}{Character, one of \code{"norm"} (default) or \code{"count"}. Which
+edge column populates the connectivity matrix W: \code{"count"} is the raw synapse
+count, \code{"norm"} is the per-postsynaptic input fraction (count / sum(count) per
+post). The package default \code{"norm"} matches \code{\link[=influence_calculator_r]{influence_calculator_r()}}, so the R
+and Python backends agree; note the upstream Python library's own default is
+\code{"count"}. For \code{signed = TRUE}, \code{"count"} is the more natural choice: negating
+\code{"norm"} weights breaks the column-sum-to-1 property and loses the
+input-normalisation interpretation.}
+
+\item{inhibitory_nts}{Character vector of \code{top_nt} values whose pre-neurons should
+receive negative weights when \code{signed = TRUE}. The Python library has no
+per-organism default; you must supply this set explicitly when \code{signed = TRUE}.}
+
+\item{excluded_nts}{Character vector of \code{top_nt} values whose pre-neurons should
+contribute \emph{nothing} to W. Independent of \code{signed}. Use for transmitter classes
+whose sign at a given target depends on the receptor mix and so cannot be
+assigned a single sign safely.}
+
+\item{lambda_max}{Numeric in \verb{(0, 1)}. Target spectral radius of the rescaled
+connectivity matrix W~ (default \code{0.99}). Sets the leading-mode gain to
+\code{1/(1 - lambda_max)}. Lower values (e.g. \code{0.5}) are more appropriate for small
+graphs like \emph{C. elegans}; the default is calibrated for whole-CNS \emph{Drosophila}
+(BANC-scale) graphs. See \code{\link[=influence_calculator_r]{influence_calculator_r()}} for the full discussion.}
 }
 \value{
 InfluenceCalculator Python object
 }
 \description{
-Create an InfluenceCalculator object using the Python library from the r-reticulate environment.
-Can accept either a SQLite database file or data frames.
+Create an InfluenceCalculator object using the Python library from the r-reticulate
+environment. From v0.2.0 of ConnectomeInfluenceCalculator the Python library accepts
+data frames and several on-disk formats directly, so no temporary SQLite database
+needs to be written when you pass \code{edgelist_simple} / \code{meta}.
 }
 \examples{
 \dontrun{
-# Using SQLite database
+# SQLite (legacy)
 ic <- influence_calculator_py("connectome.sqlite")
 
-# Using data frames
-ic <- influence_calculator_py(edgelist_simple = my_edges, meta = my_meta)
+# Feather (e.g. the BANC edge list on the lab's GCS bucket)
+ic <- influence_calculator_py("banc_888_edgelist_simple_v2.feather", meta = banc_meta)
+
+# Data frames (no temp file written)
+ic <- influence_calculator_py(edgelist_simple = my_edges, meta = my_meta,
+                               signed = TRUE,
+                               inhibitory_nts = c("glutamate", "gaba",
+                                                  "serotonin", "octopamine"),
+                               lambda_max = 0.99)
 }
 }

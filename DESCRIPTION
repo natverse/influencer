@@ -1,7 +1,7 @@
 Type: Package
 Package: influencer
 Title: R Tools for Connectome Influence Analysis
-Version: 1.0.0
+Version: 2.0.0
 Date: 2025-08-05
 Author: Alexander Bates [aut, cre] (<https://orcid.org/0000-0002-1195-0445>)
 Maintainer: Alexander Bates <alexander.shakeel.bates@gmail.com>
@@ -15,6 +15,11 @@ Description: Tools for calculating influence scores of neurons in connectomes
     using linear dynamical models. Provides both R implementations and Python
     wrappers for the ConnectomeInfluenceCalculator library.
 License: GPL-3
+SystemRequirements: ConnectomeInfluenceCalculator (>= 2.0.0) Python library
+    (https://github.com/DrugowitschLab/ConnectomeInfluenceCalculator), required
+    only for the Python-backed functions; install it into the reticulate
+    Python environment with install_python_influence_calculator(). Also needs
+    PETSc and SLEPc.
 URL: https://natverse.github.io/influencer, https://github.com/natverse/influencer
 BugReports: https://github.com/natverse/influencer/issues
 Depends: 
@@ -42,5 +47,5 @@ Config/testthat/edition: 3
 Encoding: UTF-8
 Language: en-GB
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 VignetteBuilder: knitr

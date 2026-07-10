@@ -1,16 +1,20 @@
 test_that("R and Python implementations give similar results", {
-  # Skip if Python environment is not available
+  # Skip if Python lib unavailable OR pre-v0.2.0 (no from_sql / lambda_max)
   skip_if_no_python <- function() {
-    python_available <- tryCatch({
-      # Use r-reticulate environment
+    python_ok <- tryCatch({
       reticulate::use_condaenv("r-reticulate", required = TRUE)
       ic_module <- reticulate::import("InfluenceCalculator")
-      TRUE
+      has_v020 <- tryCatch(
+        reticulate::py_has_attr(ic_module$InfluenceCalculator, "from_sql"),
+        error = function(e) FALSE
+      )
+      isTRUE(has_v020)
     }, error = function(e) FALSE)
-    
-    skip_if_not(python_available, "Python InfluenceCalculator not available")
+
+    skip_if_not(python_ok,
+                "Python InfluenceCalculator v0.2.0 (from_sql API) not available")
   }
-  
+
   skip_if_no_python()
   
   db_path <- system.file("tests", "testthat", "toy_network_example.sqlite", 
@@ -87,17 +91,22 @@ test_that("R and Python implementations give similar results", {
 })
 
 test_that("Both R and Python implementations return character ID columns", {
-  # Skip if Python environment is not available
+  # Skip if Python lib unavailable OR pre-v0.2.0 (no from_sql / lambda_max)
   skip_if_no_python <- function() {
-    python_available <- tryCatch({
+    python_ok <- tryCatch({
       reticulate::use_condaenv("r-reticulate", required = TRUE)
       ic_module <- reticulate::import("InfluenceCalculator")
-      TRUE
+      has_v020 <- tryCatch(
+        reticulate::py_has_attr(ic_module$InfluenceCalculator, "from_sql"),
+        error = function(e) FALSE
+      )
+      isTRUE(has_v020)
     }, error = function(e) FALSE)
-    
-    skip_if_not(python_available, "Python InfluenceCalculator not available")
+
+    skip_if_not(python_ok,
+                "Python InfluenceCalculator v0.2.0 (from_sql API) not available")
   }
-  
+
   skip_if_no_python()
   
   # Create test data with large integer IDs that could cause precision issues
@@ -127,7 +136,8 @@ test_that("Both R and Python implementations return character ID columns", {
   expect_true(large_ids[1] %in% result_r$id)
   expect_false(any(grepl("e\\+", result_r$id)))  # No scientific notation
   
-  # Test Python implementation (uses temporary SQLite database)
+  # Test Python implementation — v0.2.0+ takes data frames directly via the
+  # DataFrame constructor (no temporary SQLite database is written).
   ic_py <- influence_calculator_py(edgelist_simple = edgelist_simple, meta = meta)
   result_py <- calculate_influence_py(ic_py, seed_ids = large_ids[1])
   

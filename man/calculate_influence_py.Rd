@@ -20,15 +20,17 @@ calculate_influence_py(
 \item{silenced_neurons}{Character vector. Root IDs of neurons to silence
 (default: empty vector).}
 
-\item{seed_name}{Optional, a seed name for the seed you are running. Will be added as a column value.}
+\item{seed_name}{Optional, a seed name for the seed you are running. Will be
+added as a column value.}
 
 \item{const}{Constant value added to log(influence) to ensure non-negative adjusted
 influence scores. Should be set to -log(minimum_accepted_influence) where
 minimum_accepted_influence is the smallest influence value considered meaningful.
-Default 24 corresponds to minimum_accepted_influence = exp(-24) ≈ 3.78e-11.}
+Default 24 corresponds to minimum_accepted_influence = exp(-24) ~ 3.78e-11.}
 }
 \value{
-Data frame with columns: matrix_index, id, is_seed, influence score, and adjusted_influence.
+Data frame with columns: matrix_index, id, is_seed, influence score, and
+adjusted_influence (sign-preserving in signed mode).
 }
 \description{
 Calculate influence scores for seed neurons using the Python implementation.

@@ -34,6 +34,14 @@ using efficient sparse matrix operations.
 \item{\code{W_factorization}}{Cached matrix factorization for solving}
 
 \item{\code{max_eigenvalue}}{Cached maximum eigenvalue for normalization}
+
+\item{\code{lambda_max}}{Target spectral radius of the rescaled matrix}
+
+\item{\code{inhibitory_nts}}{top_nt values whose pre-neurons get negated weights when signed}
+
+\item{\code{excluded_nts}}{top_nt values whose pre-neurons contribute nothing to W}
+
+\item{\code{syn_weight_measure}}{Edge column used to populate W ("norm" or "count")}
 }
 \if{html}{\out{</div>}}
 }
@@ -59,7 +67,10 @@ Create a new InfluenceCalculatorR object
   signed = FALSE,
   count_thresh = 3,
   const = 24,
-  neg_neurotransmitters = c("glutamate", "gaba", "serotonin", "octopamine")
+  inhibitory_nts = NULL,
+  excluded_nts = NULL,
+  lambda_max = 0.99,
+  syn_weight_measure = c("norm", "count")
 )}\if{html}{\out{</div>}}
 }
 
@@ -80,7 +91,18 @@ Create a new InfluenceCalculatorR object
 
 \item{\code{const}}{Constant value for adjusted influence calculation}
 
-\item{\code{neg_neurotransmitters}}{Character Neurotransmitters that receive negative signs if requested. Must be present in \code{top_nt} field of \code{meta}.}
+\item{\code{inhibitory_nts}}{Character vector of \code{top_nt} values whose pre-neurons
+receive negative weights when \code{signed = TRUE}. Required for signed mode.}
+
+\item{\code{excluded_nts}}{Character vector of \code{top_nt} values whose pre-neurons
+contribute nothing to W (their outgoing edges are dropped). Independent
+of \code{signed}.}
+
+\item{\code{lambda_max}}{Target spectral radius of the rescaled W~; default 0.99.
+See \code{\link[=influence_calculator_r]{influence_calculator_r()}} for the trade-off it controls.}
+
+\item{\code{syn_weight_measure}}{Edge column used to populate W, \code{"norm"} (default)
+or \code{"count"}. See \code{\link[=influence_calculator_r]{influence_calculator_r()}} for the trade-off.}
 }
 \if{html}{\out{</div>}}
 }
